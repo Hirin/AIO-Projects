@@ -30,6 +30,95 @@ Mục tiêu chính là tìm ra cấu hình mô hình tối ưu thông qua **Grid
     *   **Early Stopping**: Ngăn chặn overfitting.
     *   **Learning Rate Scheduler**: Điều chỉnh tốc độ học động.
 
+## 🔄 Quy Trình Xử Lý (Pipeline)
+
+Biểu đồ dưới đây mô tả chi tiết luồng xử lý dữ liệu và huấn luyện mô hình trong `FPT_LTSF_GridSearch.ipynb`:
+
+```mermaid
+graph TD
+    %% Nodes
+    Start([Start])
+    LoadData[Load Data: FPT_train.csv]
+    
+    subgraph Preprocessing [Preprocessing & Feature Engineering]
+        LogTransform[Log Transformation: Close, Volume]
+        SpreadFeat[Spread Features: High-Low, Open-Close]
+        HMMFeat[HMM Features: Returns, Volatility, Trend]
+    end
+    
+    subgraph GridSearch [Grid Search Loop]
+        Config[Select Hyperparameters: Model, Variant, Seq_Len, RevIN, HMM]
+        
+        subgraph HMM_Logic [HMM Logic]
+            CheckHMM{Use HMM?}
+            TrainHMM[Train GaussianHMM]
+            DetectRegime[Detect Regimes: 0, 1, 2...]
+            SplitRegime[Split Data by Regime]
+        end
+        
+        subgraph Model_Architecture [Model Architecture]
+            CheckModel{Model Type?}
+            
+            CheckModel -- Linear/DLinear --> CheckRevIN{Use RevIN?}
+            CheckRevIN -- Yes --> AddRevIN[Add RevIN Layer]
+            CheckRevIN -- No --> RawInput[Raw Input]
+            
+            CheckModel -- NLinear --> InternalNorm["Internal Normalization (Last Value Subtraction)"]
+            
+            AddRevIN --> InitModel[Initialize Model]
+            RawInput --> InitModel
+            InternalNorm --> InitModel
+        end
+        
+        subgraph Model_Training [Model Training]
+            TrainLoop[Training Loop with Early Stopping]
+            Validate[Evaluate on Validation Set]
+        end
+        
+        subgraph Retrain_Submission [Retrain & Submission]
+            ReSplit[Re-split Data: Train on 95% Data]
+            Retrain[Retrain Model on Larger Set]
+            Predict[Generate Predictions]
+            SaveResult[Save Submission & Logs]
+        end
+    end
+    
+    End([End])
+
+    %% Edges
+    Start --> LoadData
+    LoadData --> LogTransform
+    LogTransform --> SpreadFeat
+    SpreadFeat --> HMMFeat
+    HMMFeat --> Config
+    
+    Config --> CheckHMM
+    CheckHMM -- Yes --> TrainHMM
+    TrainHMM --> DetectRegime
+    DetectRegime --> SplitRegime
+    SplitRegime --> CheckModel
+    
+    CheckHMM -- No --> CheckModel
+    
+    InitModel --> TrainLoop
+    TrainLoop --> Validate
+    Validate --> ReSplit
+    ReSplit --> Retrain
+    Retrain --> Predict
+    Predict --> SaveResult
+    SaveResult --> Config
+    
+    Config -- All Combinations Done --> End
+    
+    %% Styling
+    style Start fill:#f9f,stroke:#333,stroke-width:2px
+    style End fill:#f9f,stroke:#333,stroke-width:2px
+    style GridSearch fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    style Preprocessing fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Retrain_Submission fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style Model_Architecture fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
+```
+
 ## 📂 Cấu Trúc Dự Án (Project Structure)
 
 ```
