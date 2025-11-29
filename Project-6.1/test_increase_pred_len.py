@@ -548,7 +548,7 @@ for pred_len in PRED_LENS:
         # Build filename - MATCH ORIGINAL FORMAT
         revin_str = "RevIN" if use_revin else "NoRevIN"
         hmm_str = f"HMM{n_regimes}W{regime_window}" if use_hmm else "NoHMM"
-        filename = f"Sub_{variant}_{model_type}_{revin_str}_MSE_{hmm_str}_Seq{seq_len}_Pred{pred_len}_ValMSE{val_mse:.0f}.csv"
+        filename = f"Sub_{variant}_{model_type}_{revin_str}_MSE_{hmm_str}_Seq{seq_len}_Pred{pred_len}_MSE{val_mse:.0f}.csv"
         
         sub_df = pd.DataFrame({'id': range(1, pred_len + 1), 'close': pred_price})
         filepath = os.path.join(OUTPUT_DIR, filename)
