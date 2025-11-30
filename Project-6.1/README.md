@@ -228,7 +228,7 @@ Dựa trên các thử nghiệm mở rộng (xem chi tiết trong `FPT_LTSF_Comp
     *   Mô hình vẫn duy trì được xu hướng dự đoán khá tốt ngay cả ở các chân trời dự báo xa hơn, chứng tỏ tính ổn định của kiến trúc Linear.
 
 3.  **So Sánh MSE (Validation vs Hidden Test)**:
-    *   **Quan sát**: Có sự chênh lệch rất lớn giữa `ValMSE` (thường > 4000) và `MSE` trên tập Hidden Test (~28).
+    *   **Quan sát**: Có sự chênh lệch rất lớn giữa `ValMSE` (thường > 4000) và `MSE` trên tập Hidden Test (~34).
     *   **Lý do**: `ValMSE` trong quá trình huấn luyện được tính trên dữ liệu đã qua xử lý (Log transform/RevIN), trong khi `MSE` trên Hidden Test được tính trên giá trị thực tế (Original Scale).
     *   **Ý nghĩa**: Không nên so sánh trực tiếp giá trị Loss khi training với sai số thực tế. Tuy nhiên, thứ hạng mô hình trên tập Validation thường tương đồng với kết quả trên tập Test, cho thấy mô hình học được các đặc trưng quan trọng mà không bị overfitting quá mức.
 
