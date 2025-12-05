@@ -37,18 +37,165 @@ Dự án dự đoán giá đóng cửa cổ phiếu (**FPT**, **VIC**) trong **1
 | **HMM** | Hidden Markov Model - phân loại regime thị trường |
 | **Grid Search** | Tự động thử hàng trăm tổ hợp tham số |
 
-## 🔄 Pipeline
+## 🔄 Pipeline Chi Tiết
+
+### Tổng quan Flow
 
 ```mermaid
-graph LR
-    A[Load Data] --> B[Feature Engineering]
-    B --> C{HMM?}
-    C -- Yes --> D[Detect Regimes]
-    D --> E[Train Regime Models]
-    C -- No --> F[Train Global Model]
-    E --> G[Get Current Regime]
-    G --> H[Predict with Regime Model]
-    F --> I[Predict with Global Model]
+flowchart TB
+    subgraph STEP1["STEP 1: DATA LOADING"]
+        A[("🗃️ Raw Data<br/>1149 x 6")]
+    end
+    
+    subgraph STEP2["STEP 2: DATA SPLITTING"]
+        direction LR
+        B1["🔵 TRAIN<br/>839 days"]
+        B2["🟡 VAL<br/>210 days"]
+        B3["🔴 TEST<br/>100 days"]
+    end
+    
+    subgraph STEP3["STEP 3: FEATURE ENGINEERING"]
+        direction LR
+        C1["📊 Log Transform"]
+        C2["📈 Spread Features"]
+        C3["📉 HMM Features"]
+    end
+    
+    subgraph STEP4["STEP 4: HMM REGIME DETECTION"]
+        D1["fit on TRAIN"]
+        D2["predict on TRAIN+VAL"]
+        D3["Regime Labels: 0, 1, 2"]
+    end
+    
+    subgraph STEP5["STEP 5: MODEL TRAINING"]
+        direction LR
+        E1["Model 0<br/>Stable"]
+        E2["Model 1<br/>Transition"]
+        E3["Model 2<br/>Volatile"]
+    end
+    
+    subgraph STEP6["STEP 6: EVALUATION"]
+        F1["Grid Search on VAL"]
+        F2["Final Eval on TEST"]
+    end
+    
+    subgraph STEP7["STEP 7: PRODUCTION"]
+        G1["Retrain on 95% full data"]
+        G2["Select model by regimes[-1]"]
+    end
+    
+    subgraph OUTPUT["FINAL: SUBMISSION"]
+        H[("📄 submission.csv<br/>100 days forecast")]
+    end
+    
+    A --> B1 & B2 & B3
+    B1 & B2 --> C1 & C2 & C3
+    B3 -.->|"for comparison"| F2
+    C1 & C2 & C3 --> D1
+    D1 --> D2 --> D3
+    D3 --> E1 & E2 & E3
+    E1 & E2 & E3 --> F1
+    F1 --> F2
+    F2 --> G1 --> G2 --> H
+```
+
+### Step 1: Feature Engineering
+
+```mermaid
+flowchart LR
+    A["Raw Data<br/>OHLCV"] --> B["Log Transform"]
+    A --> C["Spread Features"]
+    B --> D["close_log<br/>volume_log"]
+    C --> E["HL_Spread<br/>OC_Spread"]
+    D & E --> F["HMM Features"]
+    F --> G["returns<br/>volatility<br/>trend"]
+```
+
+### Step 2: Data Splitting
+
+```mermaid
+pie title Data Split (1149 days)
+    "TRAIN (839 - 73%)" : 839
+    "VAL (210 - 18%)" : 210
+    "TEST (100 - 9%)" : 100
+```
+
+> **Phân chia dữ liệu:**
+> - **TRAIN**: Để train model
+> - **VAL**: Để early stopping và tuning hyperparameters
+> - **TEST**: Để đánh giá cuối cùng trước khi submit (internal test)
+> - **Production**: Retrain trên 95% data (TRAIN+VAL+TEST) trước khi submit
+
+### Step 3: HMM Regime Detection
+
+```mermaid
+flowchart TB
+    HMM["GaussianHMM<br/>n_components=3"]
+    
+    HMM --> |"fit()"| FIT["Learn patterns<br/>from TRAIN only"]
+    HMM --> |"predict()"| PRED["Label each day<br/>in TRAIN+VAL"]
+    PRED --> LABELS["Regime Labels<br/>[0,1,2,0,1,1,2,...]"]
+    LABELS --> LAST["regimes[-1]<br/>= Current Regime"]
+    
+    LAST --> |"Regime gì?"| SELECT["Chọn model<br/>tương ứng"]
+```
+
+> ⚠️ **QUAN TRỌNG:**
+> - HMM fit CHỈ trên TRAIN → tránh data leakage
+> - HMM predict trên TRAIN+VAL → để có regime labels
+> - KHÔNG predict được trên TEST vì chưa có data!
+> - `regimes[-1]` = regime ngày cuối → **GIẢ ĐỊNH** test cùng regime
+
+### Step 4: Train Regime Models
+
+```mermaid
+flowchart TB
+    LABELS["Regime Labels"] --> R0 & R1 & R2
+    
+    subgraph R0["Regime 0 - Stable"]
+        D0["Data Regime 0"] --> M0["Model 0<br/>DLinear"]
+    end
+    
+    subgraph R1["Regime 1 - Transition"]
+        D1["Data Regime 1"] --> M1["Model 1<br/>DLinear"]
+    end
+    
+    subgraph R2["Regime 2 - Volatile"]
+        D2["Data Regime 2"] --> M2["Model 2<br/>DLinear"]
+    end
+```
+
+> **Model học được pattern riêng cho từng Regime**
+
+### Step 5: Grid Search & Validation
+
+| Hyperparameter | Values |
+|----------------|--------|
+| `seq_len` | 60, 480 |
+| `model` | Linear, DLinear |
+| `variant` | Univariate, Multivariate |
+| `n_regimes` | 3 |
+| `regime_window` | 30, 60 |
+
+**Evaluation:**
+- Train models trên TRAIN
+- Đánh giá MSE trên VAL
+- Early stopping dựa trên VAL loss
+- Chọn config có ValMSE thấp nhất
+
+### Step 6: Production & Forecast
+
+```mermaid
+flowchart LR
+    A["Best Config"] --> B["Retrain on 95%"]
+    B --> C["Get regimes[-1]"]
+    C --> D{"Current<br/>Regime?"}
+    D --> |"0"| M0["Model 0"]
+    D --> |"1"| M1["Model 1"]
+    D --> |"2"| M2["Model 2"]
+    M0 & M1 & M2 --> E["Predict 100 days"]
+    E --> F["Inverse Transform"]
+    F --> G[("submission.csv")]
 ```
 
 ## 📂 Cấu Trúc Dự Án
@@ -151,8 +298,9 @@ for regime in [0, 1, 2]:
 
 ### Grid Search Results (Example)
 
-| Rank | Config | ValMSE |
-|------|--------|--------|
-| 1 | Multi_DLinear_HMM3W60_Seq60 | 117 |
-| 2 | Multi_DLinear_HMM3W30_Seq60 | 120 |
-| 3 | Uni_DLinear_HMM3W60_Seq60 | 125 |
+| Rank | Config | ValMSE | Hidden MSE |
+|------|--------|--------|------------|
+| 1 | Multi_DLinear_HMM3W60_Seq60 | 117 | 34 |
+| 2 | Multi_DLinear_HMM3W30_Seq60 | 120 | 38 |
+| 3 | Uni_DLinear_HMM3W60_Seq60 | 125 | 45 |
+
