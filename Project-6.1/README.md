@@ -1,240 +1,158 @@
-# 📈 Dự Đoán Giá Cổ Phiếu FPT - LTSF-Linear với Advanced Grid Search
+# 📈 Dự Đoán Giá Cổ Phiếu - LTSF-Linear với HMM Regime-Switching
 
 ![Project Banner](https://img.shields.io/badge/Project-Time%20Series%20Forecasting-blue?style=for-the-badge&logo=python)
 ![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-Active-success?style=for-the-badge)
 
-## 📖 Tổng Quan (Overview)
+## 📖 Tổng Quan
 
-Dự án này tập trung vào việc dự đoán giá đóng cửa của cổ phiếu **FPT** trong **100 ngày tiếp theo** sử dụng các kỹ thuật **Long-Term Time Series Forecasting (LTSF)** tiên tiến. Chúng tôi áp dụng các mô hình họ **Linear** (Linear, DLinear, NLinear) kết hợp với **Reversible Instance Normalization (RevIN)** và **Hidden Markov Model (HMM)** để xử lý sự thay đổi phân phối dữ liệu (distribution shift) và thích nghi với các chế độ thị trường (market regimes) khác nhau.
+Dự án dự đoán giá đóng cửa cổ phiếu (**FPT**, **VIC**) trong **100 ngày tiếp theo** sử dụng **LTSF-Linear** kết hợp **HMM Regime-Switching**.
 
-Mục tiêu chính là tìm ra cấu hình mô hình tối ưu thông qua **Grid Search** toàn diện trên không gian siêu tham số rộng lớn.
+### Ý tưởng chính
 
-> [!TIP]
-> **Chiến lược Kaggle**: Tận dụng giới hạn tối đa **500 submissions** của cuộc thi, chúng tôi thực hiện chiến lược "Vét cạn thông minh" (Smart Exhaustive Search). Thay vì chỉ chọn một vài mô hình tốt nhất, chúng tôi tạo ra hàng loạt biến thể để bao phủ mọi khả năng, từ đó tìm ra "Global Optima" thực sự cho bài toán dự báo này.
-
-## 🚀 Tính Năng Chính (Key Features)
-
-*   **Đa dạng Mô hình (Models)**: Hỗ trợ 3 biến thể hiện đại của Linear models:
-    *   **Linear**: Mạng nơ-ron một lớp đơn giản nhưng hiệu quả.
-    *   **DLinear**: Decomposition Linear - tách chuỗi thời gian thành Trend (xu hướng) và Seasonality (mùa vụ).
-    *   **NLinear**: Normalization Linear - chuẩn hóa đầu vào bằng cách trừ đi giá trị cuối cùng.
-*   **Biến thể (Variants)**:
-    *   **Univariate**: Chỉ sử dụng chuỗi giá đóng cửa (`close_log`).
-    *   **Multivariate**: Sử dụng thêm khối lượng (`volume_log`) và các chỉ số spread (`HL_Spread`, `OC_Spread`).
-*   **Kỹ thuật Nâng cao**:
-    *   **RevIN (Reversible Instance Normalization)**: Giải quyết vấn đề distribution shift bằng cách chuẩn hóa đầu vào và giải chuẩn hóa đầu ra, giúp mô hình học tốt hơn trên dữ liệu không dừng (non-stationary).
-    *   **HMM (Hidden Markov Model)**: Phát hiện các trạng thái ẩn của thị trường (ví dụ: Tăng trưởng, Suy thoái, Đi ngang) dựa trên `returns`, `volatility`, và `trend`. Mô hình sẽ tự động chuyển đổi chiến lược dự đoán tùy theo trạng thái hiện tại.
-*   **Tối ưu hóa (Optimization)**:
-    *   **Grid Search**: Tự động thử nghiệm hàng trăm tổ hợp tham số (Sequence Length, Model Type, HMM Configs).
-    *   **Early Stopping**: Ngăn chặn overfitting.
-    *   **Learning Rate Scheduler**: Điều chỉnh tốc độ học động.
-
-## 🔄 Quy Trình Xử Lý (Pipeline)
-
-Biểu đồ dưới đây mô tả chi tiết luồng xử lý dữ liệu và huấn luyện mô hình trong `FPT_LTSF_GridSearch.ipynb`:
-
-```mermaid
-graph TD
-    %% Nodes
-    Start([Start])
-    LoadData[Load Data: FPT_train.csv]
-    
-    subgraph Preprocessing [Preprocessing & Feature Engineering]
-        LogTransform[Log Transformation: Close, Volume]
-        SpreadFeat[Spread Features: High-Low, Open-Close]
-        HMMFeat[HMM Features: Returns, Volatility, Trend]
-    end
-    
-    subgraph GridSearch [Grid Search Loop]
-        Config[Select Hyperparameters: Model, Variant, Seq_Len, RevIN, HMM]
-        
-        subgraph HMM_Logic [HMM Logic]
-            CheckHMM{Use HMM?}
-            TrainHMM[Train GaussianHMM]
-            DetectRegime[Detect Regimes: 0, 1, 2...]
-            SplitRegime[Split Data by Regime]
-        end
-        
-        subgraph Model_Architecture [Model Architecture]
-            CheckModel{Model Type?}
-            
-            CheckModel -- Linear/DLinear --> CheckRevIN{Use RevIN?}
-            CheckRevIN -- Yes --> AddRevIN[Add RevIN Layer]
-            CheckRevIN -- No --> RawInput[Raw Input]
-            
-            CheckModel -- NLinear --> InternalNorm["Internal Normalization (Last Value Subtraction)"]
-            
-            AddRevIN --> InitModel[Initialize Model]
-            RawInput --> InitModel
-            InternalNorm --> InitModel
-        end
-        
-        subgraph Model_Training [Model Training]
-            TrainLoop[Training Loop with Early Stopping]
-            Validate[Evaluate on Validation Set]
-        end
-        
-        subgraph Retrain_Submission [Retrain & Submission]
-            ReSplit[Re-split Data: Train on 95% Data]
-            Retrain[Retrain Model on Larger Set]
-            Predict[Generate Predictions]
-            SaveResult[Save Submission & Logs]
-        end
-    end
-    
-    End([End])
-
-    %% Edges
-    Start --> LoadData
-    LoadData --> LogTransform
-    LogTransform --> SpreadFeat
-    SpreadFeat --> HMMFeat
-    HMMFeat --> Config
-    
-    Config --> CheckHMM
-    CheckHMM -- Yes --> TrainHMM
-    TrainHMM --> DetectRegime
-    DetectRegime --> SplitRegime
-    SplitRegime --> CheckModel
-    
-    CheckHMM -- No --> CheckModel
-    
-    InitModel --> TrainLoop
-    TrainLoop --> Validate
-    Validate --> ReSplit
-    ReSplit --> Retrain
-    Retrain --> Predict
-    Predict --> SaveResult
-    SaveResult --> Config
-    
-    Config -- All Combinations Done --> End
-    
-    %% Styling
-    style Start fill:#f9f,stroke:#333,stroke-width:2px
-    style End fill:#f9f,stroke:#333,stroke-width:2px
-    style GridSearch fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    style Preprocessing fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    style Retrain_Submission fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style Model_Architecture fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  HMM REGIME-SWITCHING APPROACH                                  │
+├─────────────────────────────────────────────────────────────────┤
+│  1. HMM phát hiện "tâm lý thị trường" ẩn (regimes)              │
+│     - Regime 0: Stable (volatility thấp)                        │
+│     - Regime 1: Transition                                      │
+│     - Regime 2: Volatile (volatility cao)                       │
+│                                                                 │
+│  2. Train model RIÊNG cho từng regime                           │
+│     → Model học pattern của từng điều kiện thị trường           │
+│                                                                 │
+│  3. Predict dựa trên current regime (regime ngày cuối)          │
+│     → Dùng model phù hợp với điều kiện hiện tại                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-## 📂 Cấu Trúc Dự Án (Project Structure)
+## 🚀 Tính Năng Chính
+
+| Feature | Mô tả |
+|---------|-------|
+| **Models** | Linear, DLinear (Trend/Seasonal decomposition) |
+| **Variants** | Univariate (close only) / Multivariate (close, volume, spreads) |
+| **RevIN** | Reversible Instance Normalization - xử lý distribution shift |
+| **HMM** | Hidden Markov Model - phân loại regime thị trường |
+| **Grid Search** | Tự động thử hàng trăm tổ hợp tham số |
+
+## 🔄 Pipeline
+
+```mermaid
+graph LR
+    A[Load Data] --> B[Feature Engineering]
+    B --> C{HMM?}
+    C -- Yes --> D[Detect Regimes]
+    D --> E[Train Regime Models]
+    C -- No --> F[Train Global Model]
+    E --> G[Get Current Regime]
+    G --> H[Predict with Regime Model]
+    F --> I[Predict with Global Model]
+```
+
+## 📂 Cấu Trúc Dự Án
 
 ```
 Project-6.1/
-├── FPT_LTSF_GridSearch.ipynb       # Notebook chính: Grid Search toàn diện, EDA, và Training
-├── testing_increas_pred_val.py     # Script: Tinh chỉnh độ dài dự đoán (Pred Len Tuning) và thử nghiệm HMM
+├── FPT_LTSF_GridSearch_Extended.ipynb   # Grid Search cho FPT
+├── VIC_LTSF_GridSearch_Extended.ipynb   # Grid Search cho VIC
 ├── data/
-│   └── FPT_train.csv               # Dữ liệu lịch sử giá cổ phiếu FPT
-├── submissions/                    # Thư mục chứa kết quả dự đoán (file .csv)
-├── results/                        # Thư mục chứa logs và bảng tổng hợp kết quả
-└── README.md                       # Tài liệu hướng dẫn chi tiết (File này)
+│   ├── FPT_train.csv                    # Data FPT
+│   ├── VIC_train.csv                    # Data VIC (train)
+│   └── VIC_hidden_test.csv              # Data VIC (hidden test)
+├── submissions/                          # Kết quả dự đoán
+├── scripts/
+│   └── debug_hmm_regimes.py             # Debug HMM visualization
+└── README.md
 ```
 
-### Chi tiết các file:
-*   **`FPT_LTSF_GridSearch.ipynb`**: Đây là "bộ não" của dự án. Nó thực hiện:
-    1.  Tải và tiền xử lý dữ liệu (Log transform, Feature engineering).
-    2.  Định nghĩa các lớp mô hình (Linear, DLinear, NLinear) và RevIN.
-    3.  Chạy vòng lặp Grid Search qua các tham số: `Seq_Len` (7, 15, ..., 480), `Model`, `Variant`, `HMM`.
-    4.  Lưu kết quả tốt nhất vào thư mục `submissions/`.
-*   **`testing_increas_pred_val.py`**: Một script Python độc lập dùng để kiểm thử chuyên sâu hơn về độ dài dự đoán (`Pred_Len`) và tinh chỉnh các tham số HMM (số lượng regime, window size).
-
-## 🛠️ Cài Đặt & Yêu Cầu (Installation)
-
-Dự án yêu cầu **Python 3.7+** và các thư viện sau:
+## 🛠️ Cài Đặt
 
 ```bash
 pip install torch pandas numpy scikit-learn hmmlearn matplotlib seaborn tqdm
 ```
 
-### Các thư viện chính:
-*   `torch`: Framework Deep Learning.
-*   `hmmlearn`: Thư viện cho Hidden Markov Models.
-*   `pandas`, `numpy`: Xử lý dữ liệu.
-*   `matplotlib`, `seaborn`: Trực quan hóa dữ liệu.
+## 📖 Hướng Dẫn Sử Dụng
 
-## 📖 Hướng Dẫn Sử Dụng (Usage)
-
-### 1. Chạy Grid Search (Notebook)
-Mở file `FPT_LTSF_GridSearch.ipynb` bằng Jupyter Notebook hoặc VS Code.
-Chạy lần lượt các cell để:
-*   Thực hiện EDA (Khám phá dữ liệu).
-*   Huấn luyện các mô hình.
-*   Xem biểu đồ phân loại Regime thị trường.
-*   Kết quả dự đoán sẽ được lưu tự động.
-
-### 2. Chạy Tinh chỉnh Pred Len (Script)
-Chạy lệnh sau trong terminal:
+### 1. Chuẩn bị data (nếu cần tách hidden test)
 
 ```bash
-python testing_increas_pred_val.py
+# Tách 100 ngày cuối làm hidden test
+python -c "
+import pandas as pd
+df = pd.read_csv('data/VIC.csv')
+df.iloc[:-100].to_csv('data/VIC_train.csv', index=False)
+df.iloc[-100:].to_csv('data/VIC_hidden_test.csv', index=False)
+"
 ```
-Script này sẽ:
-*   Thử nghiệm các độ dài dự đoán khác nhau: `[100, 120, 150, 200, 220]`.
-*   Sử dụng cấu hình tốt nhất tìm được từ Grid Search.
-*   In ra MSE (Mean Squared Error) trên tập validation.
-*   Lưu file submission vào `submissions/pred_len_tuning/`.
 
-## 🧠 Chi Tiết Phương Pháp (Methodology)
+### 2. Chạy Grid Search
+
+Mở notebook tương ứng (FPT hoặc VIC) và chạy **Run All**.
+
+Kết quả được lưu vào `submissions/` với format:
+```
+Sub_Multivariate_DLinear_HMM3W60_Seq60_MSE1234.csv
+```
+
+## 🧠 Chi Tiết Phương Pháp
 
 ### Feature Engineering
-Dữ liệu gốc được chuyển đổi và tạo đặc trưng mới để tăng tính ổn định và khả năng học của mô hình:
 
-1.  **Log Transformation**:
-    *   Công thức: $x' = \ln(x + 1)$
-    *   **Công dụng**: Giảm độ lệch (skewness) của phân phối giá, giúp dữ liệu trở nên "gần chuẩn" (Gaussian-like) hơn, ổn định phương sai cho mô hình Linear.
+| Feature | Công thức | Công dụng |
+|---------|-----------|-----------|
+| **close_log** | `ln(close + 1)` | Stabilize variance |
+| **HL_Spread** | `ln(high) - ln(low)` | Intraday volatility |
+| **OC_Spread** | `ln(close) - ln(open)` | Price momentum |
+| **returns** | `pct_change(close)` | For HMM |
+| **volatility** | `rolling_std(returns)` | For HMM |
+| **trend** | `pct_change(rolling_mean)` | For HMM |
 
-2.  **Spread Features** (Biến động trong ngày):
-    *   **HL_Spread (High-Low)**:
-        *   Công thức: $S_{HL} = \ln(High) - \ln(Low)$
-        *   **Công dụng**: Đo lường **biến động nội ngày** (Intraday Volatility). Giá trị càng lớn cho thấy thị trường càng giằng co mạnh.
-    *   **OC_Spread (Open-Close)**:
-        *   Công thức: $S_{OC} = \ln(Close) - \ln(Open)$
-        *   **Công dụng**: Đo lường **động lực giá** (Price Momentum) và hướng di chuyển trong ngày (Dương = Tăng, Âm = Giảm).
+### HMM Regime Detection
 
-3.  **HMM Features** (Đầu vào cho Regime Detection):
-    *   **Returns**:
-        *   Công thức: $R_t = \ln(Close_t) - \ln(Close_{t-1})$
-        *   **Công dụng**: Tỷ suất sinh lời logarit, đặc trưng cơ bản nhất của chuỗi thời gian tài chính, có tính dừng (stationary) cao hơn giá gốc.
-    *   **Volatility**:
-        *   Công thức: $Vol_t = Std(R_{t-k}:R_t)$ (Độ lệch chuẩn lăn)
-        *   **Công dụng**: Đo lường rủi ro thị trường. Volatility cao thường báo hiệu các giai đoạn bất ổn hoặc đảo chiều.
-    *   **Trend**:
-        *   Công thức: $Trend_t = MA(Close_t) - Close_t$ (hoặc các biến thể tương tự)
-        *   **Công dụng**: Xác định xu hướng chủ đạo (Uptrend/Downtrend) để HMM phân loại trạng thái.
+```python
+class RegimeDetector:
+    def fit(self, df_train):
+        """Fit HMM trên train data only (avoid leakage)"""
+        features = df[['returns', 'volatility', 'trend']]
+        self.model.fit(features)
+    
+    def predict(self, df_full):
+        """Predict regimes cho toàn bộ data"""
+        return self.model.predict(features)
+```
 
-### Hidden Markov Model (HMM)
-Chúng tôi sử dụng `GaussianHMM` để chia dữ liệu lịch sử thành các "Regime" (ví dụ: 3 regimes).
-*   **Training**: Mỗi regime sẽ có một mô hình dự đoán riêng biệt được huấn luyện chuyên sâu trên dữ liệu thuộc regime đó.
-*   **Inference**: Khi dự đoán, hệ thống xác định regime hiện tại và chọn mô hình tương ứng để đưa ra kết quả chính xác nhất.
+**Flow khi predict:**
+1. `regimes = detector.predict(df)` → lấy regime cho mỗi ngày
+2. `current_regime = regimes[-1]` → regime ngày cuối
+3. `regime_model = models[current_regime]` → model tương ứng
+4. `prediction = regime_model(last_sequence)` → kết quả
 
-## 📊 Kết Quả (Results)
+### Regime-Specific Training
 
-Kết quả dự đoán (file `.csv`) bao gồm cột `id` (ngày dự đoán) và `close` (giá dự đoán đã được inverse transform về thang đo gốc).
-Tên file kết quả chứa đầy đủ thông tin cấu hình, ví dụ:
-`Sub_Multivariate_DLinear_RevIN_MSE_HMM3W60_Seq60_Pred100_ValMSE1234.csv`
+```python
+# Chia training data theo regime
+for regime in [0, 1, 2]:
+    mask = (regime_indices == regime)
+    X_regime, y_regime = X_train[mask], y_train[mask]
+    
+    # Train model riêng cho regime này
+    regime_models[regime] = train_model(X_regime, y_regime)
+```
 
-## 📈 Phân Tích & Đánh Giá (Analysis & Insights)
+## 📊 Kết Quả & Insights
 
-Dựa trên các thử nghiệm mở rộng (xem chi tiết trong `FPT_LTSF_Comparison.ipynb` và `testing_increas_pred_val.py`), chúng tôi rút ra một số kết luận quan trọng:
+### Tại sao HMM Regime-Switching hiệu quả?
 
-1.  **Loss Function Tuning (Huber vs MSE)**:
-    *   Việc thay thế hàm mất mát mặc định (MSE) bằng **Huber Loss** (để giảm tác động của outliers) **không mang lại sự cải thiện đáng kể** về độ chính xác (RMSE/MAE tương đương).
-    *   Điều này cho thấy dữ liệu FPT đã được xử lý tốt bởi RevIN và không chứa quá nhiều nhiễu ngoại lai cực đoan ảnh hưởng đến quá trình huấn luyện.
+1. **Chuyên biệt hóa**: Thay vì 1 model học mọi pattern → nhiều models chuyên biệt
+2. **Context-aware**: Prediction dựa trên điều kiện thị trường hiện tại
+3. **Giảm noise**: Model chỉ học từ data có cùng đặc tính
 
-2.  **Độ Dài Dự Đoán (Prediction Length)**:
-    *   Việc tăng `pred_len` (từ 100 lên 120, 150...) **không tạo ra tác động lớn** đến hiệu suất mô hình.
-    *   Mô hình vẫn duy trì được xu hướng dự đoán khá tốt ngay cả ở các chân trời dự báo xa hơn, chứng tỏ tính ổn định của kiến trúc Linear.
+### Grid Search Results (Example)
 
-3.  **So Sánh MSE (Validation vs Hidden Test)**:
-    *   **Quan sát**: Có sự chênh lệch rất lớn giữa `ValMSE` (thường > 4000) và `MSE` trên tập Hidden Test (~34).
-    *   **Lý do**: `ValMSE` trong quá trình huấn luyện được tính trên dữ liệu đã qua xử lý (Log transform/RevIN), trong khi `MSE` trên Hidden Test được tính trên giá trị thực tế (Original Scale).
-    *   **Ý nghĩa**: Không nên so sánh trực tiếp giá trị Loss khi training với sai số thực tế. Tuy nhiên, thứ hạng mô hình trên tập Validation thường tương đồng với kết quả trên tập Test, cho thấy mô hình học được các đặc trưng quan trọng mà không bị overfitting quá mức.
-
-4.  **Kết Luận**:
-    *   Mô hình **Linear cơ bản** kết hợp với **RevIN** và **MSE Loss** là cấu hình cân bằng nhất giữa hiệu năng và chi phí tính toán.
-    *   Các kỹ thuật phức tạp hơn (như thay đổi Loss function hay tăng quá nhiều tham số) chưa cần thiết cho bài toán cụ thể này.
-
----
-*Dự án được thực hiện nhằm mục đích nghiên cứu và học tập về Time Series Forecasting.*
+| Rank | Config | ValMSE |
+|------|--------|--------|
+| 1 | Multi_DLinear_HMM3W60_Seq60 | 117 |
+| 2 | Multi_DLinear_HMM3W30_Seq60 | 120 |
+| 3 | Uni_DLinear_HMM3W60_Seq60 | 125 |
