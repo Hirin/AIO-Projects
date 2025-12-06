@@ -1,0 +1,17 @@
+Variant,Model,HMM,SeqLen,ValMSE,File
+Multivariate,Linear,NoHMM,60,74.96224975585938,Sub_Multivariate_Linear_NoHMM_Seq60_MSE75.csv
+Multivariate,DLinear,NoHMM,60,76.3421859741211,Sub_Multivariate_DLinear_NoHMM_Seq60_MSE76.csv
+Univariate,Linear,NoHMM,60,116.1504898071289,Sub_Univariate_Linear_NoHMM_Seq60_MSE116.csv
+Univariate,DLinear,NoHMM,60,117.208251953125,Sub_Univariate_DLinear_NoHMM_Seq60_MSE117.csv
+Univariate,Linear,HMM3W60,60,129.63204956054688,Sub_Univariate_Linear_HMM3W60_Seq60_MSE130.csv
+Univariate,DLinear,HMM3W60,60,131.0090789794922,Sub_Univariate_DLinear_HMM3W60_Seq60_MSE131.csv
+Univariate,DLinear,HMM3W30,60,137.15945434570312,Sub_Univariate_DLinear_HMM3W30_Seq60_MSE137.csv
+Univariate,Linear,HMM3W30,60,137.60491943359375,Sub_Univariate_Linear_HMM3W30_Seq60_MSE138.csv
+Multivariate,Linear,HMM3W60,60,168.63632202148438,Sub_Multivariate_Linear_HMM3W60_Seq60_MSE169.csv
+Multivariate,DLinear,HMM3W60,60,195.7593536376953,Sub_Multivariate_DLinear_HMM3W60_Seq60_MSE196.csv
+Multivariate,Linear,HMM3W30,60,317.720947265625,Sub_Multivariate_Linear_HMM3W30_Seq60_MSE318.csv
+Multivariate,DLinear,HMM3W30,60,334.6904602050781,Sub_Multivariate_DLinear_HMM3W30_Seq60_MSE335.csv
+Univariate,Linear,NoHMM,480,4888.3125,Sub_Univariate_Linear_NoHMM_Seq480_MSE4888.csv
+Univariate,DLinear,NoHMM,480,5073.298828125,Sub_Univariate_DLinear_NoHMM_Seq480_MSE5073.csv
+Multivariate,Linear,NoHMM,480,5518.88916015625,Sub_Multivariate_Linear_NoHMM_Seq480_MSE5519.csv
+Multivariate,DLinear,NoHMM,480,5628.6767578125,Sub_Multivariate_DLinear_NoHMM_Seq480_MSE5629.csv
