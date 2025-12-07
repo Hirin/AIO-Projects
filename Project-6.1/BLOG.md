@@ -2,9 +2,9 @@
 
 # I. Giới thiệu
 
-Đây là bài viết chia sẻ giải pháp của nhóm trong cuộc thi **[AIO-2025: LTSF-Linear Forecasting Challenge](https://www.kaggle.com/competitions/aio-2025-linear-forecasting-challenge)** trên Kaggle.
+Bài viết này trình bày giải pháp kỹ thuật cho cuộc thi **AIO-2025: LTSF-Linear Forecasting Challenge**. Mục tiêu của cuộc thi là dự báo giá đóng cửa (Close Price) của cổ phiếu FPT trong **100 ngày tiếp theo**.
 
-**Mục tiêu cuộc thi:** Dự báo giá đóng cửa cổ phiếu FPT trong **100 ngày tiếp theo**. Thay vì dựa vào các mô hình deep learning phức tạp, thử thách khuyến khích người tham gia khám phá sức mạnh của các **mô hình tuyến tính** như Linear, NLinear và DLinear khi áp dụng vào dữ liệu tài chính thực tế.
+Thay vì sử dụng các mô hình Deep Learning phức tạp (như LSTM, Transformer), giải pháp tập trung khai thác hiệu quả của các mô hình tuyến tính (Linear, NLinear, DLinear) kết hợp với kỹ thuật phân tích trạng thái thị trường (Market Regime).
 
 ## Thách thức chính
 
@@ -19,22 +19,20 @@
 
 Nhóm kết hợp 3 kỹ thuật chính:
 
-1. **RevIN (Reversible Instance Normalization)**: Xử lý distribution shift bằng cách normalize đầu vào và denormalize đầu ra
+1.  **RevIN (Reversible Instance Normalization)**: Xử lý distribution shift bằng cách normalize đầu vào và denormalize đầu ra
 
-2. **HMM Regime Detection**: Sử dụng Hidden Markov Model để phát hiện trạng thái thị trường (Stable / Transition / Volatile)
+2.  **HMM Regime Detection**: Sử dụng Hidden Markov Model để phát hiện trạng thái thị trường (Stable / Transition / Volatile)
 
-3. **Regime-Specific Models**: Train model riêng cho mỗi regime, dự báo dựa trên điều kiện thị trường hiện tại
-
-## Kết quả đạt được hiện tại
+3.  **Regime-Specific Models**: Train model riêng cho mỗi regime, dự báo dựa trên điều kiện thị trường hiện tại
 
 ## Kết quả đạt được hiện tại
 
-| Method | Config | Private Score | Ghi chú |
-|--------|--------|---------------|---------|
-| **Univariate DLinear** | NoHMM + Seq480 | **28.98** | 🥇 Best Private Score |
-| **Univariate Linear** | NoHMM + Seq480 | 39.81 | 🥈 Runner-up |
-| **Multivariate DLinear** | HMM + Seq60 | 47.60 | 🥉 Best Multivariate |
-| **Multivariate Linear** | HMM + Seq60 | 66.89 | Top 4 |
+| Method | Config | Private Score |
+|--------|--------|---------------|
+| **Univariate DLinear** | NoHMM + Seq480 | **28.98** |
+| **Univariate Linear** | NoHMM + Seq480 | 39.81 |
+| **Multivariate DLinear** | HMM + Seq60 | 47.60 |
+| **Multivariate Linear** | HMM + Seq60 | 66.89 |
 
 
 ---
@@ -99,7 +97,6 @@ Thị trường tài chính không hoạt động theo một quy luật duy nh�
 
 **Giải pháp:** HMM Regime-Switching - phát hiện regime và train model chuyên biệt cho từng regime.
 
-## 4. Data Constraint - Này thì không chịu cũng phải chịu 🤣
 ---
 
 # III. Giải pháp kỹ thuật
@@ -110,9 +107,9 @@ Thị trường tài chính không hoạt động theo một quy luật duy nh�
 
 RevIN là kỹ thuật normalize dữ liệu **có thể đảo ngược**, được thiết kế đặc biệt cho time series với distribution shift. Ý tưởng chính:
 
-1. **Normalize input**: Chuẩn hóa chuỗi đầu vào về mean=0, std=1
-2. **Model học**: Model học patterns trên dữ liệu đã chuẩn hóa
-3. **Denormalize output**: Khôi phục lại scale gốc cho dự báo
+1.  **Normalize input**: Chuẩn hóa chuỗi đầu vào về mean=0, std=1
+2.  **Model học**: Model học patterns trên dữ liệu đã chuẩn hóa
+3.  **Denormalize output**: Khôi phục lại scale gốc cho dự báo
 
 <p align="center">
   <img src="images/fig1.gif" alt="RevIN Animation" width="500">
@@ -135,7 +132,7 @@ class RevIN(nn.Module):
         self.eps = eps
         self.affine = affine
         if affine:
-            # Bước 4: Learnable parameters γ và β
+            # Bước 4: Learnable parameters $\gamma$ và $\beta$
             self.gamma = nn.Parameter(torch.ones(num_features))
             self.beta = nn.Parameter(torch.zeros(num_features))
 
@@ -203,7 +200,7 @@ Trong bối cảnh thị trường chứng khoán:
 
 | Feature | Công thức | Ý nghĩa |
 |---------|-----------|---------|
-| **Returns** | $R_t = \frac{Close_t - Close_{t-1}}{Close_{t-1}}$ | Tỷ suất sinh lời ngày, cho biết thị trường tăng hay giảm |
+| **Returns** | $R_t = \frac{Close_t - Close_{t-1}}{Close_{t-1}}$ | Tỷ suất sinh lời ngày, cho biết thị trường tăng hay giảm. $Close_t$: giá đóng cửa ngày $t$. |
 | **Volatility** | $Vol_t = std(R_{t-9}, ..., R_t)$ | Độ biến động 10 ngày, cao = thị trường bất ổn |
 | **Trend** | $Trend_t = \frac{MA_{10}(t) - MA_{10}(t-1)}{MA_{10}(t-1)}$ | Xu hướng trung bình động, cho biết trend tăng/giảm |
 
@@ -290,15 +287,11 @@ Câu hỏi: Nên dùng bao nhiêu regimes? 3? 4? 5?
 | **N = 4+** | Chi tiết hơn | Ít samples/regime, dễ overfit |
 
 **Trong project này:** Nhóm chọn **N = 3** vì:
-1. Đủ chi tiết để phân biệt bull/bear/transition
-2. Mỗi regime có đủ samples để train
+1.  Đủ chi tiết để phân biệt bull/bear/transition
+2.  Mỗi regime có đủ samples để train
 
 ### 2.5 Lưu ý quan trọng
 
-> **⚠️ HMM không thể predict regime cho future!**
-> 
-> HMM chỉ có thể predict regime dựa trên observations (returns, volatility, trend). Với 100 ngày tương lai, ta chưa có observations → không thể predict regime.
->
 > **Giải pháp:** Giả định regime hiện tại (`regimes[-1]`) tiếp tục trong 100 ngày forecast.
 
 ---
@@ -313,15 +306,15 @@ Câu hỏi: Nên dùng bao nhiêu regimes? 3? 4? 5?
 </p>
 
 **Kiến trúc:**
-1. **RevIN Normalize**: Chuẩn hóa input về mean=0, std=1
-2. **Linear Layer**: Một lớp fully-connected ánh xạ từ `seq_len` → `pred_len`
-3. **Denormalize**: Khôi phục scale gốc cho output
+1.  **RevIN Normalize**: Chuẩn hóa input về mean=0, std=1
+2.  **Linear Layer**: Một lớp fully-connected ánh xạ từ `seq_len` → `pred_len`
+3.  **Denormalize**: Khôi phục scale gốc cho output
 
 **Công thức:**
 $$\hat{y} = W \cdot x_{norm} + b$$
 $$y = \hat{y} \cdot \sigma + \mu$$
 
-Trong đó $W \in \mathbb{R}^{pred\_len \times seq\_len}$.
+Trong đó $W \in \mathbb{R}^{pred\_len \times seq\_len}$ là ma trận trọng số.
 
 ```python
 class Linear(nn.Module):
@@ -350,8 +343,8 @@ class Linear(nn.Module):
 </p>
 
 **Ý tưởng:** Tách chuỗi thời gian thành 2 thành phần:
-- **Trend**: Xu hướng dài hạn (tính bằng Moving Average)
-- **Seasonal**: Biến động ngắn hạn (phần còn lại)
+-   **Trend**: Xu hướng dài hạn (tính bằng Moving Average)
+-   **Seasonal**: Biến động ngắn hạn (phần còn lại)
 
 **Công thức:**
 $$x_{trend} = \text{MovingAvg}(x, kernel)$$
@@ -385,8 +378,8 @@ class DLinear(nn.Module):
 ```
 
 **Tại sao DLinear tốt hơn?**
-- Trend và Seasonal có patterns khác nhau → cần weights khác nhau
-- Linear đơn phải học cả 2 patterns cùng lúc → khó hơn
+-   Trend và Seasonal có patterns khác nhau → cần weights khác nhau
+-   Linear đơn phải học cả 2 patterns cùng lúc → khó hơn
 
 ---
 
@@ -395,9 +388,9 @@ class DLinear(nn.Module):
 ### 4.1 Ý tưởng
 
 Thay vì train **một model duy nhất** trên toàn bộ dữ liệu, ta:
-1. Dùng **HMM để phân cụm** dữ liệu thành các regimes (trạng thái thị trường ẩn)
-2. **Train một model riêng** trên dữ liệu của từng regime
-3. Khi forecast: xác định **regime hiện tại** → chọn model đó → predict
+1.  Dùng **HMM để phân cụm** dữ liệu thành các regimes (trạng thái thị trường ẩn)
+2.  **Train một model riêng** trên dữ liệu của từng regime
+3.  Khi forecast: xác định **regime hiện tại** → chọn model đó → predict
 
 ### 4.2 Code
 
@@ -435,9 +428,9 @@ prediction = models[current_regime](last_sequence)
 | **Model riêng theo regime** | Mỗi model chỉ tập trung học pattern của 1 regime → specialized |
 
 **Ví dụ:**
-- **Regime 0 (Stable):** Model học pattern ổn định, volatility thấp
-- **Regime 1 (Transition):** Model học các dấu hiệu đổi hướng
-- **Regime 2 (Volatile):** Model học cách xử lý biến động mạnh
+-   **Regime 0 (Stable):** Model học pattern ổn định, volatility thấp
+-   **Regime 1 (Transition):** Model học các dấu hiệu đổi hướng
+-   **Regime 2 (Volatile):** Model học cách xử lý biến động mạnh
 
 ---
 
@@ -448,21 +441,21 @@ prediction = models[current_regime](last_sequence)
 ```mermaid
 flowchart TB
     subgraph STEP1["STEP 1: DATA LOADING"]
-        A[("🗃️ Raw Data<br/>1149 x 6")]
+        A[("Raw Data<br/>1149 x 6")]
     end
     
     subgraph STEP2["STEP 2: DATA SPLITTING"]
         direction LR
-        B1["🔵 TRAIN<br/>839 days"]
-        B2["🟡 VAL<br/>210 days"]
-        B3["🔴 TEST<br/>100 days"]
+        B1["TRAIN<br/>839 days"]
+        B2["VAL<br/>210 days"]
+        B3["TEST<br/>100 days"]
     end
     
     subgraph STEP3["STEP 3: FEATURE ENGINEERING"]
         direction LR
-        C1["📊 Log Transform"]
-        C2["📈 Spread Features"]
-        C3["📉 HMM Features"]
+        C1["Log Transform"]
+        C2["Spread Features"]
+        C3["HMM Features"]
     end
     
     subgraph STEP4["STEP 4: HMM REGIME DETECTION"]
@@ -489,7 +482,7 @@ flowchart TB
     end
     
     subgraph OUTPUT["FINAL: SUBMISSION"]
-        H[("📄 submission.csv<br/>100 days forecast")]
+        H[("submission.csv<br/>100 days forecast")]
     end
     
     A --> B1 & B2 & B3
@@ -539,8 +532,8 @@ df['volume_log'] = np.log(df['volume'] + 1)
 ```
 
 **Tại sao?** Dữ liệu tài chính thường có phân phối lệch phải. Log transform giúp:
-- Ổn định phương sai
-- Dễ học pattern hơn
+-   Ổn định phương sai
+-   Dễ học pattern hơn
 
 ### 2.2 Spread Features
 
@@ -552,16 +545,18 @@ df['volume_log'] = np.log(df['volume'] + 1)
 **HL_Spread (High-Low Spread):**
 $$HL\_Spread = \frac{High - Low}{Low} \times 100\%$$
 
-- Đo **độ biến động trong ngày**
-- Cao → thị trường biến động mạnh
-- Thấp → thị trường ổn định
+-   Đo **độ biến động trong ngày**
+-   Cao → thị trường biến động mạnh
+-   Thấp → thị trường ổn định
 
 **OC_Spread (Open-Close Spread):**
 $$OC\_Spread = \frac{Close - Open}{Open} \times 100\%$$
 
-- Đo **xu hướng trong ngày**
-- Dương (xanh) → ngày tăng
-- Âm (đỏ) → ngày giảm
+-   Đo **xu hướng trong ngày**
+-   Dương (xanh) → ngày tăng
+-   Âm (đỏ) → ngày giảm
+
+trong đó: $High, Low, Open, Close$ là giá cao nhất, thấp nhất, mở cửa và đóng cửa trong ngày.
 
 ```python
 df['HL_Spread'] = (df['high'] - df['low']) / df['low']
@@ -610,12 +605,16 @@ flowchart TB
     
     LAST --> |"Regime gì?"| SELECT["Chọn model<br/>tương ứng"]
 ```
+<p align="center">
+  <img src="images/regimes-1.png" alt="Minh họa regimes[-1]" width="680">
+  <br><em>Hình 15. Minh họa việc lấy regime cuối cùng (regimes[-1]).</em>
+</p>
 
-> ⚠️ **LƯU Ý QUAN TRỌNG: Tránh Data Leakage**
+> **LƯU Ý QUAN TRỌNG: Tránh Data Leakage**
 > 
-> - **fit()** CHỈ trên TRAIN → để học patterns
-> - **predict()** trên TRAIN+VAL → để có regime labels cho cả 2
-> - KHÔNG predict được trên TEST vì chưa có data!
+> -   **fit()** CHỈ trên TRAIN → để học patterns
+> -   **predict()** trên TRAIN+VAL → để có regime labels cho cả 2
+> -   KHÔNG predict được trên TEST vì chưa có data!
 
 ```python
 # Fit HMM CHỈ trên TRAIN
@@ -743,7 +742,7 @@ Nhóm sử dụng kết quả từ hệ thống Kaggle để có đánh giá kh�
 
 ## Bảng kết quả (Kaggle Leaderboard)
 
-> **⚠️ LƯU Ý QUAN TRỌNG VỀ ĐIỂM SỐ:**
+> **LƯU Ý QUAN TRỌNG VỀ ĐIỂM SỐ:**
 > Trong quá trình thi, nhóm từng đạt được mức **Private Score 14.35** (như hình Kaggle cũ). Tuy nhiên, sau khi kiểm tra kỹ lưỡng, nhóm phát hiện đó là kết quả của việc **Data Leakage** (do sơ suất trong khâu xử lý data pipeline). 
 > 
 > Sau khi fix lỗi và retrain lại pipeline chuẩn, số điểm ổn định (stable score) mà nhóm đạt được là **28.98**. Đây mới là kết quả thực sự phản ánh hiệu năng của giải pháp. Nhóm quyết định trung thực với kết quả này thay vì "ăn may".
@@ -752,21 +751,21 @@ Nhóm sử dụng kết quả từ hệ thống Kaggle để có đánh giá kh�
 
 | # | Model | Type | Config | Private Score |
 |---|-------|------|--------|---------------|
-| 1 | **Univariate DLinear** | Đơn biến | Seq480 (NoHMM) | **28.9824** 🥇 |
-| 2 | **Univariate Linear** | Đơn biến | Seq480 (NoHMM) | 39.8063 🥈 |
-| 3 | **Multivariate DLinear** | Đa biến | Seq60 (HMM) | 47.6060 🥉 |
+| 1 | **Univariate DLinear** | Đơn biến | Seq480 (NoHMM) | **28.9824** |
+| 2 | **Univariate Linear** | Đơn biến | Seq480 (NoHMM) | 39.8063 |
+| 3 | **Multivariate DLinear** | Đa biến | Seq60 (HMM) | 47.6060 |
 | 4 | **Multivariate Linear** | Đa biến | Seq60 (HMM) | 66.8885 |
 
 ### So sánh trực quan
 
 <p align="center">
   <img src="images/four_models_grid.png" alt="Four Models Grid" width="800">
-  <br><em>Hình 15a. Dự báo chi tiết của từng model.</em>
+  <br><em>Hình 16. Dự báo chi tiết của từng model.</em>
 </p>
 
 <p align="center">
   <img src="images/four_models_combined.png" alt="Four Models Combined" width="800">
-  <br><em>Hình 15b. So sánh tổng hợp: Univariate (Warm colors) vs Multivariate (Cool colors).</em>
+  <br><em>Hình 17. So sánh tổng hợp: Univariate (Warm colors) vs Multivariate (Cool colors).</em>
 </p>
 
 ## Phân tích kết quả chi tiết
@@ -775,11 +774,11 @@ Nhóm sử dụng kết quả từ hệ thống Kaggle để có đánh giá kh�
 
 <p align="center">
   <img src="images/analysis_seqlen.png" alt="SeqLen Analysis" width="700">
-  <br><em>Hình 16. Impact của Sequence Length.</em>
+  <br><em>Hình 18. Impact của Sequence Length.</em>
 </p>
 
-- **Univariate Seq480 (Đỏ - Best):** Nhờ nhìn được lịch sử dài (480 ngày ~ 2 năm), model nắm bắt được **xu hướng dài hạn** (long-term trend) của FPT. Đường dự báo đầm, chắc chắn và bám sát xu hướng tăng trưởng.
-- **Univariate Seq60 (Cam - Overfit):** Chỉ nhìn 60 ngày (~3 tháng), model bị "cuốn" theo các biến động ngắn hạn (noise). Kết quả là Private Score cực tệ (~203) do overfitting vào dữ liệu train gần nhất.
+-   **Univariate Seq480 (Đỏ - Best):** Nhờ nhìn được lịch sử dài (480 ngày ~ 2 năm), model nắm bắt được **xu hướng dài hạn** (long-term trend) của FPT. Đường dự báo đầm, chắc chắn và bám sát xu hướng tăng trưởng.
+-   **Univariate Seq60 (Cam - Overfit):** Chỉ nhìn 60 ngày (~3 tháng), model bị "cuốn" theo các biến động ngắn hạn (noise). Kết quả là Private Score cực tệ (~203) do overfitting vào dữ liệu train gần nhất.
 
 > **Kết luận:** Với bài toán dự báo dài hạn (100 ngày), việc sử dụng **input sequence đủ dài** (Look-back window lớn) quan trọng hơn nhiều so với việc dùng model phức tạp.
 
@@ -787,11 +786,11 @@ Nhóm sử dụng kết quả từ hệ thống Kaggle để có đánh giá kh�
 
 <p align="center">
   <img src="images/analysis_hmm.png" alt="HMM Analysis" width="700">
-  <br><em>Hình 17. Impact của HMM trên Multivariate Models.</em>
+  <br><em>Hình 19. Impact của HMM trên Multivariate Models.</em>
 </p>
 
-- **Multivariate HMM (Xanh - Stable):** Khi dùng nhiều biến (đa biến), dữ liệu trở nên rất nhiễu. HMM giúp **phân cụm nhiễu** bằng cách chia thị trường thành các regimes (Stable vs Volatile). Nhờ đó forecast (đường xanh) ổn định hơn, Private Score 47.60.
-- **Multivariate NoHMM (Xám - Volatile):** Nếu không có HMM, model đa biến bị nhiễu loạn bởi các tín hiệu conflicting từ nhiều features. Kết quả dự báo (đường xám) đi lệch hẳn, Private Score tệ (~249).
+-   **Multivariate HMM (Xanh - Stable):** Khi dùng nhiều biến (đa biến), dữ liệu trở nên rất nhiễu. HMM giúp **phân cụm nhiễu** bằng cách chia thị trường thành các regimes (Stable vs Volatile). Nhờ đó forecast (đường xanh) ổn định hơn, Private Score 47.60.
+-   **Multivariate NoHMM (Xám - Volatile):** Nếu không có HMM, model đa biến bị nhiễu loạn bởi các tín hiệu conflicting từ nhiều features. Kết quả dự báo (đường xám) đi lệch hẳn, Private Score tệ (~249).
 
 > **Kết luận:** Nếu dùng Multivariate, **HMM là bắt buộc** để kiểm soát nhiễu. Tuy nhiên, ngay cả khi có HMM, performance vẫn thua Univariate đơn giản.
 
@@ -799,13 +798,14 @@ Nhóm sử dụng kết quả từ hệ thống Kaggle để có đánh giá kh�
 
 Tại sao Univariate (28.98) lại thắng Multivariate (47.60)?
 
-1. **Noise vs Signal:** FPT là mã cổ phiếu blue-chip, biến động khá tuân theo quy luật cung cầu dài hạn. Các biến thêm vào (Open, High, Low, Volume) trong bài toán forecast 100 ngày dường như đóng vai trò là **Noise** nhiều hơn là Signal hữu ích.
-2. **Robustness:** Model đơn biến ít tham số hơn, khó overfit hơn. Trong bối cảnh dự báo dài hạn, sự ổn định (robustness) quan trọng hơn sự phức tạp.
+1.  **Noise vs Signal:** FPT là mã cổ phiếu blue-chip, biến động khá tuân theo quy luật cung cầu dài hạn. Các biến thêm vào (Open, High, Low, Volume) trong bài toán forecast 100 ngày dường như đóng vai trò là **Noise** nhiều hơn là Signal hữu ích.
+2.  **Robustness:** Model đơn biến ít tham số hơn, khó overfit hơn. Trong bối cảnh dự báo dài hạn, sự ổn định (robustness) quan trọng hơn sự phức tạp.
 
 ### Kết luận cuối cùng
 
 Mặc dù giải pháp **Multivariate + HMM** (được thiết kế công phu) rất hứa hẹn về mặt kỹ thuật, nhưng thực tế chứng minh **Univariate DLinear với long sequence** (đơn giản, nhìn xa) mới là "chân ái" cho tập dữ liệu này.
 
+> **Bài học rút ra:** "Simple is Best". Đôi khi việc hiểu data (xử lý trend dài hạn) quan trọng hơn việc áp dụng model fancy. 
 
 ## Kết luận
 
@@ -827,25 +827,22 @@ Nhóm cũng áp dụng pipeline tương tự cho cổ phiếu **VIC (Vingroup)**
 
 <p align="center">
   <img src="images/vic_train_vs_hidden.png" alt="VIC Train vs Test Data" width="680">
-  <br><em>Hình 16. Dữ liệu VIC: Train (xanh) vs Test Data (cam).</em>
+  <br><em>Hình 20. Dữ liệu VIC: Train (xanh) vs Test Data (cam).</em>
 </p>
 
 **Đặc điểm VIC khác FPT:**
-- Downtrend dài từ 2019-2023 (~120 → ~40)
-- Test Data có rally mạnh (~40 → ~120)
-- **Thách thức lớn:** Model train trên downtrend, phải predict uptrend!
+-   Downtrend dài từ 2019-2023 (~120 → ~40)
+-   Test Data có rally mạnh (~40 → ~120)
+-   **Thách thức lớn:** Model train trên downtrend, phải predict uptrend!
 
 ## So sánh các predictions
 
 <p align="center">
   <img src="images/vic_predictions.png" alt="VIC Predictions" width="680">
-  <br><em>Hình 17. So sánh predictions của các models trên VIC test data.</em>
+  <br><em>Hình 21. So sánh predictions của các models trên VIC test data.</em>
 </p>
 
 **Nhận xét:**
-- Tất cả models đều **underestimate** rally mạnh của VIC
-- Điều này hợp lý vì:
-  - Model chỉ thấy downtrend trong training data
   - Không có thông tin gì về catalyst (news, events) gây rally
   - **Regime shift** từ bearish → bullish không được capture
 
@@ -887,5 +884,8 @@ Trong project này, nhóm đã:
 
 ---
 
-**🎉 Cảm ơn bạn đã đọc!**
+**Cảm ơn bạn đã đọc!**
+
+### Tags
+Time Series Forecasting, Linear Models, HMM, Regime Switching, Stock Prediction, FPT, Kaggle
 
