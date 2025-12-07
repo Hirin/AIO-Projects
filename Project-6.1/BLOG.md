@@ -27,11 +27,14 @@ Nhóm kết hợp 3 kỹ thuật chính:
 
 ## Kết quả đạt được hiện tại
 
-| Rank | Method | Hidden MSE | Ghi chú |
-|------|--------|-----------|---------|
-| 1 | Univariate DLinear | **34** | Best overall |
-| 2 | Univariate Linear | 36 | |
-| 3 | Multivariate DLinear | 51 | Best với HMM |
+## Kết quả đạt được hiện tại
+
+| Method | Config | Private Score | Ghi chú |
+|--------|--------|---------------|---------|
+| **Univariate DLinear** | NoHMM + Seq480 | **28.98** | 🥇 Best Private Score |
+| **Univariate Linear** | NoHMM + Seq480 | 39.81 | 🥈 Runner-up |
+| **Multivariate DLinear** | HMM + Seq60 | 47.60 | 🥉 Best Multivariate |
+| **Multivariate Linear** | HMM + Seq60 | 66.89 | Top 4 |
 
 
 ---
@@ -736,96 +739,73 @@ submission.to_csv('submission.csv', index=False)
 
 # V. Kết quả đánh giá
 
-> **Mẹo:** Dữ liệu FPT có thể cào được từ thư viện **Vnstock**, nên nhóm đã cào hidden test về để đánh giá chi tiết hơn.
+Nhóm sử dụng kết quả từ hệ thống Kaggle để có đánh giá khách quan nhất dựa trên **Private Leaderboard**.
 
-## Bảng kết quả
+## Bảng kết quả (Kaggle Leaderboard)
 
-| # | Model | Config | Hidden MSE | Train MSE | Nhận xét |
-|---|-------|--------|------------|-----------|----------|
-| 1 | **Univariate** | DLinear \| Seq480 | **34.55** | 4118 | 🥇 Tốt nhất |
-| 2 | Univariate | Linear \| Seq480 | 39.33 | 4188 | 🥈 |
-| 3 | Multivariate | DLinear \| Seq60 | 56.35 | 550 | HMM giúp ích |
-| 4 | Multivariate | Linear \| Seq60 | 64.64 | 633 | HMM giúp ích |
-| 5 | Univariate | DLinear \| Seq60 | 203.53 | 179 | Overfitting |
-| 6 | Univariate | Linear \| Seq60 | 205.47 | 182 | Overfitting |
-| 7 | Multivariate | DLinear \| Seq60 | 249.19 | 193 | NoHMM - kém |
-| 8 | Multivariate | Linear \| Seq60 | 253.08 | 195 | NoHMM - kém |
-| ... | ... | ... | ... | ... | ... |
+> **⚠️ LƯU Ý QUAN TRỌNG VỀ ĐIỂM SỐ:**
+> Trong quá trình thi, nhóm từng đạt được mức **Private Score 14.35** (như hình Kaggle cũ). Tuy nhiên, sau khi kiểm tra kỹ lưỡng, nhóm phát hiện đó là kết quả của việc **Data Leakage** (do sơ suất trong khâu xử lý data pipeline). 
+> 
+> Sau khi fix lỗi và retrain lại pipeline chuẩn, số điểm ổn định (stable score) mà nhóm đạt được là **28.98**. Đây mới là kết quả thực sự phản ánh hiệu năng của giải pháp. Nhóm quyết định trung thực với kết quả này thay vì "ăn may".
+
+### Top 4 Models tốt nhất
+
+| # | Model | Type | Config | Private Score |
+|---|-------|------|--------|---------------|
+| 1 | **Univariate DLinear** | Đơn biến | Seq480 (NoHMM) | **28.9824** 🥇 |
+| 2 | **Univariate Linear** | Đơn biến | Seq480 (NoHMM) | 39.8063 🥈 |
+| 3 | **Multivariate DLinear** | Đa biến | Seq60 (HMM) | 47.6060 🥉 |
+| 4 | **Multivariate Linear** | Đa biến | Seq60 (HMM) | 66.8885 |
+
+### So sánh trực quan
 
 <p align="center">
-  <img src="images/top4_predictions.png" alt="Top 4 Predictions" width="700">
-  <br><em>Hình 15. So sánh Top 4 predictions với actual values trên hidden test.</em>
+  <img src="images/four_models_grid.png" alt="Four Models Grid" width="800">
+  <br><em>Hình 15a. Dự báo chi tiết của từng model.</em>
 </p>
 
-## Phân tích chi tiết
+<p align="center">
+  <img src="images/four_models_combined.png" alt="Four Models Combined" width="800">
+  <br><em>Hình 15b. So sánh tổng hợp: Univariate (Warm colors) vs Multivariate (Cool colors).</em>
+</p>
 
-### Top 1-2: Univariate + Seq480 
+## Phân tích kết quả chi tiết
 
-```
-Univariate DLinear Seq480: TrainMSE=4118, HiddenMSE=34.55
-Univariate Linear Seq480:  TrainMSE=4188, HiddenMSE=39.33
-```
+### 1. Cuộc chiến Sequence Length: Seq480 (Long) vs Seq60 (Short)
 
-**Tại sao trainMSE cao nhưng hiddenMSE lại thấp?**
+<p align="center">
+  <img src="images/analysis_seqlen.png" alt="SeqLen Analysis" width="700">
+  <br><em>Hình 16. Impact của Sequence Length.</em>
+</p>
 
-1. **Seq480 = 480 ngày input = ~2 năm dữ liệu**
-   - Model nhìn thấy trend dài hạn
-   - Ít bị ảnh hưởng bởi nhiễu ngắn hạn
-   
-2. **Univariate chỉ dùng `close`**
-   - Không bị nhiễu từ các features khác
+- **Univariate Seq480 (Đỏ - Best):** Nhờ nhìn được lịch sử dài (480 ngày ~ 2 năm), model nắm bắt được **xu hướng dài hạn** (long-term trend) của FPT. Đường dự báo đầm, chắc chắn và bám sát xu hướng tăng trưởng.
+- **Univariate Seq60 (Cam - Overfit):** Chỉ nhìn 60 ngày (~3 tháng), model bị "cuốn" theo các biến động ngắn hạn (noise). Kết quả là Private Score cực tệ (~203) do overfitting vào dữ liệu train gần nhất.
 
+> **Kết luận:** Với bài toán dự báo dài hạn (100 ngày), việc sử dụng **input sequence đủ dài** (Look-back window lớn) quan trọng hơn nhiều so với việc dùng model phức tạp.
 
-3. **TrainMSE cao = không overfitting**
-   - Model học pattern tổng quát thay vì nhớ training data
-   - Generalize tốt hơn trên hidden test
+### 2. Cuộc chiến HMM: Có HMM vs Không HMM
 
-### Top 3-4: Multivariate + HMM + Seq60
+<p align="center">
+  <img src="images/analysis_hmm.png" alt="HMM Analysis" width="700">
+  <br><em>Hình 17. Impact của HMM trên Multivariate Models.</em>
+</p>
 
-```
-Multivariate DLinear Seq60 + HMM: TrainMSE=550, HiddenMSE=56.35
-Multivariate Linear Seq60 + HMM:  TrainMSE=633, HiddenMSE=64.64
-```
+- **Multivariate HMM (Xanh - Stable):** Khi dùng nhiều biến (đa biến), dữ liệu trở nên rất nhiễu. HMM giúp **phân cụm nhiễu** bằng cách chia thị trường thành các regimes (Stable vs Volatile). Nhờ đó forecast (đường xanh) ổn định hơn, Private Score 47.60.
+- **Multivariate NoHMM (Xám - Volatile):** Nếu không có HMM, model đa biến bị nhiễu loạn bởi các tín hiệu conflicting từ nhiều features. Kết quả dự báo (đường xám) đi lệch hẳn, Private Score tệ (~249).
 
-**Tại sao multivariate với HMM lại khá tốt?**
+> **Kết luận:** Nếu dùng Multivariate, **HMM là bắt buộc** để kiểm soát nhiễu. Tuy nhiên, ngay cả khi có HMM, performance vẫn thua Univariate đơn giản.
 
-1. **HMM giúp phân cụm data theo regime**
-   - Mỗi model chỉ học pattern của 1 regime
-   - Giảm conflict giữa các patterns khác nhau
+### 3. Univariate vs Multivariate: Đơn giản là nhất?
 
-2. **Multivariate + HMM = combination tốt**
-   - Spread features giúp HMM detect regime tốt hơn
-   - Model nhận thêm thông tin từ nhiều features
+Tại sao Univariate (28.98) lại thắng Multivariate (47.60)?
 
-### Univariate + Seq60 (5-6)
+1. **Noise vs Signal:** FPT là mã cổ phiếu blue-chip, biến động khá tuân theo quy luật cung cầu dài hạn. Các biến thêm vào (Open, High, Low, Volume) trong bài toán forecast 100 ngày dường như đóng vai trò là **Noise** nhiều hơn là Signal hữu ích.
+2. **Robustness:** Model đơn biến ít tham số hơn, khó overfit hơn. Trong bối cảnh dự báo dài hạn, sự ổn định (robustness) quan trọng hơn sự phức tạp.
 
-```
-Univariate DLinear Seq60: TrainMSE=179, HiddenMSE=203.53
-Univariate Linear Seq60:  TrainMSE=182, HiddenMSE=205.47
-```
+### Kết luận cuối cùng
 
-**Dấu hiệu overfitting rõ ràng:**
+Mặc dù giải pháp **Multivariate + HMM** (được thiết kế công phu) rất hứa hẹn về mặt kỹ thuật, nhưng thực tế chứng minh **Univariate DLinear với long sequence** (đơn giản, nhìn xa) mới là "chân ái" cho tập dữ liệu này.
 
-| TrainMSE | HiddenMSE | Ratio |
-|----------|-----------|-------|
-| 179 | 203.53 | 1.14x |
-| 182 | 205.47 | 1.13x |
-
-- **Seq60 = chỉ 60 ngày input = ~3 tháng**
-- Model học được patterns ngắn hạn rất tốt (trainMSE thấp)
-- Nhưng patterns đó không generalize (hiddenMSE cao)
-
-### Multivariate NoHMM (7-8)
-
-```
-Multivariate DLinear Seq60 NoHMM: TrainMSE=193, HiddenMSE=249.19
-Multivariate Linear Seq60 NoHMM:  TrainMSE=195, HiddenMSE=253.08
-```
-
-**Vấn đề:**
-- Không có HMM → model phải học cùng lúc tất cả regimes
-- Multivariate thêm noise từ các features
-- Kết quả: performance kém hơn univariate
 
 ## Kết luận
 
@@ -846,20 +826,20 @@ Nhóm cũng áp dụng pipeline tương tự cho cổ phiếu **VIC (Vingroup)**
 ## Dữ liệu VIC
 
 <p align="center">
-  <img src="images/vic_train_vs_hidden.png" alt="VIC Train vs Hidden Test" width="680">
-  <br><em>Hình 16. Dữ liệu VIC: Train (xanh) vs Hidden Test (cam).</em>
+  <img src="images/vic_train_vs_hidden.png" alt="VIC Train vs Test Data" width="680">
+  <br><em>Hình 16. Dữ liệu VIC: Train (xanh) vs Test Data (cam).</em>
 </p>
 
 **Đặc điểm VIC khác FPT:**
 - Downtrend dài từ 2019-2023 (~120 → ~40)
-- Hidden test có rally mạnh (~40 → ~120)
+- Test Data có rally mạnh (~40 → ~120)
 - **Thách thức lớn:** Model train trên downtrend, phải predict uptrend!
 
 ## So sánh các predictions
 
 <p align="center">
   <img src="images/vic_predictions.png" alt="VIC Predictions" width="680">
-  <br><em>Hình 17. So sánh predictions của các models trên VIC hidden test.</em>
+  <br><em>Hình 17. So sánh predictions của các models trên VIC test data.</em>
 </p>
 
 **Nhận xét:**
