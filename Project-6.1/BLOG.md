@@ -35,9 +35,6 @@ Nhóm kết hợp 3 kỹ thuật chính:
 | **Multivariate DLinear** | HMM + Seq60 | 47.60 |
 | **Multivariate Linear** | HMM + Seq60 | 66.89 |
 
-
-
-
 # II. Các thách thức
 
 ## 1. Long-term Forecasting
@@ -56,10 +53,10 @@ Dự báo 100 ngày là một thách thức lớn so với các bài toán dự 
 - **Ưu điểm:** Một model, capture được dependency
 - **Nhược điểm:** Error tích lũy theo thời gian
 
-<p align="center">
-  <img src="images/direct_vs_recursive.png" alt="Direct vs Recursive Forecasting" width="680">
+<div align="center">
+  <img src="https://aioconquer.aivietnam.edu.vn/static/uploads/20251207_230158_10adea5a.png" alt="Direct vs Recursive Forecasting" width="680">
   <br><em>Hình 1. So sánh Direct (trái) và Recursive (phải) Forecasting. (Nguồn: AI Viet Nam)</em>
-</p>
+</div>
 
 **Trong project này:** Nhóm mình sử dụng **Direct Forecasting** - model dự báo trực tiếp 100 ngày một lần mà không cần recursive.
 
@@ -67,10 +64,10 @@ Dự báo 100 ngày là một thách thức lớn so với các bài toán dự 
 
 **Distribution shift** là hiện tượng phân phối dữ liệu thay đổi theo thời gian. Trong dữ liệu FPT, điều này thể hiện rõ ràng:
 
-<p align="center">
-  <img src="images/distribution_shift_fpt.png" alt="Distribution Shift FPT" width="680">
+<div align="center">
+  <img src="https://aioconquer.aivietnam.edu.vn/static/uploads/20251207_230240_7d6fd813.png" alt="Distribution Shift FPT" width="680">
   <br><em>Hình 2. Distribution Shift trong dữ liệu FPT: Phân phối giá 2020-2021 hoàn toàn khác với 2023-2024.</em>
-</p>
+</div>
 
 Như hình trên cho thấy:
 - **Period 1 (2020-2021):** Giá dao động trong khoảng thấp
@@ -89,16 +86,14 @@ Thị trường tài chính không hoạt động theo một quy luật duy nh�
 - **Sideways/Consolidation**: Đi ngang, không có xu hướng rõ ràng
 - **Transition**: Giai đoạn chuyển đổi giữa các regime
 
-<p align="center">
-  <img src="images/market_regime_spx.png" alt="Market Regime Analysis" width="680">
+<div align="center">
+  <img src="https://aioconquer.aivietnam.edu.vn/static/uploads/20251207_230328_5efb0bd6.png" alt="Market Regime Analysis" width="680">
   <br><em>Hình 3. Phân tích Market Regime trên S&P 500 (Nguồn: <a href="https://www.wallstreetcourier.com/spotlights/mrnl_sp-500-outlook-analyzing-the-current-market-regime-of-sp-500-spx/">Wall Street Courier</a>)</em>
-</p>
+</div>
 
 **Vấn đề:** Một model duy nhất khó có thể học được tất cả patterns từ các regime khác nhau. Dữ liệu từ Bull Market có thể "nhiễu" việc học pattern của Bear Market và ngược lại.
 
 **Giải pháp:** HMM Regime-Switching - phát hiện regime và train model chuyên biệt cho từng regime.
-
-
 
 # III. Giải pháp kỹ thuật
 
@@ -112,17 +107,17 @@ RevIN là kỹ thuật normalize dữ liệu **có thể đảo ngược**, đư
 2.  **Model học**: Model học patterns trên dữ liệu đã chuẩn hóa
 3.  **Denormalize output**: Khôi phục lại scale gốc cho dự báo
 
-<p align="center">
-  <img src="images/fig1.gif" alt="RevIN Animation" width="500">
+<div align="center">
+  <img src="https://raw.githubusercontent.com/ts-kim/RevIN/refs/heads/master/fig1.gif" alt="RevIN Animation" width="500">
   <br><em>Hình 4. Tác dụng của RevIN. (Nguồn: <a href="https://github.com/ts-kim/RevIN/">RevIN GitHub</a>)</em>
-</p>
+</div>
 
 ### 1.2 Thuật toán
 
-<p align="center">
-  <img src="images/revin_algorithm.png" alt="RevIN Algorithm" width="600">
+<div align="center">
+  <img src="https://raw.githubusercontent.com/ts-kim/RevIN/refs/heads/master/RevIN.jpg" alt="RevIN Algorithm" width="600">
   <br><em>Hình 5. Thuật toán RevIN chi tiết. (Nguồn: <a href="https://github.com/ts-kim/RevIN/">RevIN GitHub</a>)</em>
-</p>
+</div>
 
 ### 1.3 Code Implementation
 
@@ -159,13 +154,12 @@ class RevIN(nn.Module):
             return x
 ```
 
-
 ### 1.4 Apply vào dữ liệu FPT
 
-<p align="center">
-  <img src="images/revin_fpt.png" alt="RevIN on FPT" width="680">
+<div align="center">
+  <img src="https://aioconquer.aivietnam.edu.vn/static/uploads/20251207_230604_bc3a9f57.png" alt="RevIN on FPT" width="680">
   <br><em>Hình 6. Áp dụng RevIN vào dữ liệu FPT.</em>
-</p>
+</div>
 
 **Phân tích:**
 - **Góc trên trái (Original):** Giá FPT có range thay đổi từ ~50 (2020) lên ~130 (2024)
@@ -175,16 +169,14 @@ class RevIN(nn.Module):
 
 **Lợi ích:** Model không còn bị ảnh hưởng bởi sự thay đổi scale theo thời gian.
 
-
-
 ## 2. HMM Regime Detection
 
 ### 2.1 Hidden Markov Model
 
-<p align="center">
-  <img src="images/hmm_diagram.png" alt="HMM Diagram" width="500">
+<div align="center">
+  <img src="https://aioconquer.aivietnam.edu.vn/static/uploads/20251207_230633_c437a437.png" alt="HMM Diagram" width="500">
   <br><em>Hình 7. Minh họa Hidden Markov Model với 3 hidden states và 2 observations. (Nguồn: <a href="https://www.youtube.com/watch?v=RWkHJnFj5rY">YouTube</a>)</em>
-</p>
+</div>
 
 HMM là mô hình xác suất trong đó:
 - **Hidden states (Regimes):** Trạng thái ẩn mà ta không quan sát trực tiếp (ví dụ: mưa, mây, nắng)
@@ -215,10 +207,10 @@ df['volatility'] = df['returns'].rolling(window=10).std().fillna(0)
 df['trend'] = df['close'].rolling(window=10).mean().pct_change().fillna(0)
 ```
 
-<p align="center">
-  <img src="images/hmm_features.png" alt="HMM Features" width="680">
+<div align="center">
+  <img src="https://aioconquer.aivietnam.edu.vn/static/uploads/20251207_230714_cb77ec0b.png" alt="HMM Features" width="680">
   <br><em>Hình 8. Visualization các features cho HMM trên dữ liệu FPT.</em>
-</p>
+</div>
 
 **Nhận xét từ hình:**
 - **Returns:** Dao động quanh 0, có các spike lớn vào thời điểm biến động mạnh
@@ -247,10 +239,10 @@ class RegimeDetector:
 
 **Giá trị thường dùng:** 30, 60
 
-<p align="center">
-  <img src="images/regime_window.png" alt="Regime Window" width="680">
+<div align="center">
+  <img src="https://aioconquer.aivietnam.edu.vn/static/uploads/20251207_230743_8019a827.png" alt="Regime Window" width="680">
   <br><em>Hình 9. Regime Window: Bỏ qua 30 ngày đầu khi features chưa ổn định.</em>
-</p>
+</div>
 
 ### 2.4 Chọn số lượng Regimes
 
@@ -258,10 +250,10 @@ Câu hỏi: Nên dùng bao nhiêu regimes? 3? 4? 5?
 
 #### N = 3 Regimes
 
-<p align="center">
-  <img src="images/hmm_3_regimes.png" alt="HMM 3 Regimes" width="680">
+<div align="center">
+  <img src="https://aioconquer.aivietnam.edu.vn/static/uploads/20251207_230805_17d129a5.png" alt="HMM 3 Regimes" width="680">
   <br><em>Hình 10. HMM với 3 Regimes trên dữ liệu FPT.</em>
-</p>
+</div>
 
 **Phân tích:**
 - **Regime 0 (Xanh lá):** Thường xuất hiện khi thị trường ổn định, volatility thấp
@@ -272,10 +264,10 @@ Câu hỏi: Nên dùng bao nhiêu regimes? 3? 4? 5?
 
 #### N = 4 Regimes
 
-<p align="center">
-  <img src="images/hmm_4_regimes.png" alt="HMM 4 Regimes" width="680">
+<div align="center">
+  <img src="https://aioconquer.aivietnam.edu.vn/static/uploads/20251207_230827_31c74398.png" alt="HMM 4 Regimes" width="680">
   <br><em>Hình 11. HMM với 4 Regimes trên dữ liệu FPT.</em>
-</p>
+</div>
 
 **Phân tích:**
 - Phân chia chi tiết hơn với 4 trạng thái
@@ -285,7 +277,7 @@ Câu hỏi: Nên dùng bao nhiêu regimes? 3? 4? 5?
 **Trade-off:**
 
 | N Regimes | Ưu điểm | Nhược điểm |
-|--|||
+|-----------|---------|------------|
 | **N = 2** | Đơn giản, nhiều samples/regime | Quá thô, bỏ sót chi tiết |
 | **N = 3** | Cân bằng, phổ biến | Có thể không đủ chi tiết |
 | **N = 4+** | Chi tiết hơn | Ít samples/regime, dễ overfit |
@@ -298,16 +290,14 @@ Câu hỏi: Nên dùng bao nhiêu regimes? 3? 4? 5?
 
 > **Giải pháp:** Giả định regime hiện tại (`regimes[-1]`) tiếp tục trong 100 ngày forecast.
 
-
-
 ## 3. LTSF-Linear Models
 
 ### 3.1 RLinear (Linear + RevIN)
 
-<p align="center">
-  <img src="images/RLinear.png" alt="RLinear Architecture" width="500">
+<div align="center">
+  <img src="https://aioconquer.aivietnam.edu.vn/static/uploads/20251207_230945_f7fda647.jpg" alt="RLinear Architecture" width="500">
   <br><em>Hình 12. Kiến trúc Linear + RevIN: RevIN → Linear → Denormalize.</em>
-</p>
+</div>
 
 **Kiến trúc:**
 1.  **RevIN Normalize**: Chuẩn hóa input về mean=0, std=1
@@ -341,10 +331,10 @@ class Linear(nn.Module):
 
 ### 3.2 RDLinear (DLinear + RevIN)
 
-<p align="center">
-  <img src="images/RDLinear.png" alt="RDLinear Architecture" width="600">
+<div align="center">
+  <img src="https://aioconquer.aivietnam.edu.vn/static/uploads/20251207_231025_7b04eb51.jpg" alt="RDLinear Architecture" width="600">
   <br><em>Hình 13. Kiến trúc DLinear + RevIN: Decomposition thành Trend + Seasonal.</em>
-</p>
+</div>
 
 **Ý tưởng:** Tách chuỗi thời gian thành 2 thành phần:
 -   **Trend**: Xu hướng dài hạn (tính bằng Moving Average)
@@ -385,14 +375,12 @@ class DLinear(nn.Module):
 -   Trend và Seasonal có patterns khác nhau → cần weights khác nhau
 -   Linear đơn phải học cả 2 patterns cùng lúc → khó hơn
 
-
-
 ## 4. Regime-Specific Training
 
-<p align="center">
-  <img src="images/regimelabel.png" alt="HMM Labeling" width="800">
-  <br><em>Hình 16. Quá trình gán nhãn Regime bằng HMM.</em>
-</p>
+<div align="center">
+  <img src="https://aioconquer.aivietnam.edu.vn/static/uploads/20251207_231130_c88c0efd.jpg" alt="HMM Labeling" width="800">
+  <br><em>Hình 14. Quá trình gán nhãn Regime bằng HMM.</em>
+</div>
 
 ### 4.1 Ý tưởng
 
@@ -440,19 +428,14 @@ prediction = models[current_regime](last_sequence)
 -   **Regime 1 (Transition):** Model học các dấu hiệu đổi hướng
 -   **Regime 2 (Volatile):** Model học cách xử lý biến động mạnh
 
-
-
 # IV. Luồng xử lý
 
 ## Tổng quan Pipeline
 
-
-
-
-<p align="center">
-  <img src="images/pipeline.png" alt="Pipeline Overview" width="800">
-  <br><em>Hình 14. Tổng quan quy trình xử lý dữ liệu và huấn luyện mô hình.</em>
-</p>
+<div align="center">
+  <img src="https://aioconquer.aivietnam.edu.vn/static/uploads/20251207_231301_c8e40f1c.jpg" alt="Pipeline Overview" width="800">
+  <br><em>Hình 15. Tổng quan quy trình xử lý dữ liệu và huấn luyện mô hình.</em>
+</div>
 
 ## 1. Data Loading
 
@@ -464,10 +447,7 @@ df = pd.read_csv('data/FPT_train.csv')
 # 1149 rows (days)
 ```
 
-
-
 ## 2. Feature Engineering
-
 
 ### 2.1 Log Transform
 
@@ -484,10 +464,10 @@ df['volume_log'] = np.log(df['volume'] + 1)
 
 ### 2.2 Spread Features
 
-<p align="center">
-  <img src="images/spread_features.png" alt="Spread Features" width="680">
-  <br><em>Hình 15. Visualization các Spread Features trên dữ liệu FPT.</em>
-</p>
+<div align="center">
+  <img src="https://aioconquer.aivietnam.edu.vn/static/uploads/20251207_231345_58956876.png" alt="Spread Features" width="680">
+  <br><em>Hình 16. Visualization các Spread Features trên dữ liệu FPT.</em>
+</div>
 
 **HL_Spread (High-Low Spread):**
 $$HL\_Spread = \frac{High - Low}{Low} \times 100\%$$
@@ -526,8 +506,6 @@ df['trend'] = df['close'].rolling(window=10).mean().pct_change()
 - **Momentum:** Giúp đo lường sức mạnh của xu hướng hiện tại; giá nằm trên MA10 thường báo hiệu đà tăng mạnh.
 - **Giảm nhiễu:** Đủ dài để loại bỏ nhiễu từng phiên (daily noise) nhưng đủ ngắn để phản ứng nhanh với thay đổi xu hướng.
 
-
-
 ## 3. Data Splitting
 
 | Split | Days | Mục đích |
@@ -536,14 +514,12 @@ df['trend'] = df['close'].rolling(window=10).mean().pct_change()
 | **VAL** | 210 (18%) | Early stopping, tuning |
 | **TEST** | 100 (9%) | Đánh giá cuối cùng |
 
-
-
 ## 4. HMM Regime Detection
 
-<p align="center">
-  <img src="images/regimes-1.png" alt="Minh họa regimes[-1]" width="680">
-  <br><em>Hình 17. Minh họa việc lấy regime cuối cùng (regimes[-1]).</em>
-</p>
+<div align="center">
+  <img src="https://aioconquer.aivietnam.edu.vn/static/uploads/20251207_231446_d63b6406.png" alt="Minh họa regimes[-1]" width="680">
+  <br><em>Hình 17. Regime cuối cùng (regimes[-1]).</em>
+</div>
 
 **LƯU Ý QUAN TRỌNG: Tránh Data Leakage**
  
@@ -560,14 +536,12 @@ hmm.fit(train_df)
 regimes = hmm.predict(trainval_df)
 ```
 
-
-
 ## 5. Model Training (Per Regime)
 
-<p align="center">
-  <img src="images/regime.png" alt="Regime Training" width="300">
+<div align="center">
+  <img src="https://aioconquer.aivietnam.edu.vn/static/uploads/20251207_231539_c61ea0ed.jpg" alt="Regime Training" width="300">
   <br><em>Hình 18. Huấn luyện mô hình riêng biệt cho từng Regime.</em>
-</p>
+</div>
 
 Với mỗi regime, train một model riêng:
 
@@ -578,8 +552,6 @@ for r in [0, 1, 2]:
     models[r] = DLinear(seq_len, pred_len, num_features)
     train(models[r], X_r, y_r)
 ```
-
-
 
 ## 6. Evaluation on TEST
 
@@ -598,14 +570,12 @@ test_mse = ((predictions - y_test) ** 2).mean()
 
 **Mục đích:** Đảm bảo pipeline hoạt động tốt trước khi submit.
 
-
-
 ## 7. Production & Submission
 
-<p align="center">
-  <img src="images/retrain.png" alt="Retrain Pipeline" width="800">
-  <br><em>Hình 19. Quy trình Retrain và Predict cho Production.</em>
-</p>
+<div align="center">
+  <img src="https://aioconquer.aivietnam.edu.vn/static/uploads/20251207_231639_6b491528.jpg" alt="Retrain Pipeline" width="800">
+  <br><em>Hình 20. Quy trình Retrain và Predict cho Production.</em>
+</div>
 
 ### 7.1 Retrain for Production
 
@@ -649,8 +619,6 @@ submission = pd.DataFrame({
 submission.to_csv('submission.csv', index=False)
 ```
 
-
-
 # V. Kết quả đánh giá
 
 Nhóm sử dụng kết quả từ hệ thống Kaggle để có đánh giá khách quan nhất dựa trên **Private Leaderboard**.
@@ -672,36 +640,36 @@ Nhóm sử dụng kết quả từ hệ thống Kaggle để có đánh giá kh�
 
 ### So sánh trực quan
 
-<p align="center">
-  <img src="images/four_models_grid.png" alt="Four Models Grid" width="800">
-  <br><em>Hình 20. Dự báo chi tiết của từng model.</em>
-</p>
+<div align="center">
+  <img src="https://aioconquer.aivietnam.edu.vn/static/uploads/20251207_231715_774f8de9.png" alt="Four Models Grid" width="800">
+  <br><em>Hình 21. Dự báo chi tiết của từng model.</em>
+</div>
 
-<p align="center">
-  <img src="images/four_models_combined.png" alt="Four Models Combined" width="800">
-  <br><em>Hình 21. So sánh tổng hợp: Univariate (Warm colors) vs Multivariate (Cool colors).</em>
-</p>
+<div align="center">
+  <img src="https://aioconquer.aivietnam.edu.vn/static/uploads/20251207_231732_566f85ba.png" alt="Four Models Combined" width="800">
+  <br><em>Hình 22. So sánh tổng hợp: Univariate vs Multivariate.</em>
+</div>
 
 ## Phân tích kết quả chi tiết
 
 ### 1. Cuộc chiến Sequence Length: Seq480 (Long) vs Seq60 (Short)
 
-<p align="center">
-  <img src="images/analysis_seqlen.png" alt="SeqLen Analysis" width="700">
-  <br><em>Hình 22. Impact của Sequence Length.</em>
-</p>
+<div align="center">
+  <img src="https://aioconquer.aivietnam.edu.vn/static/uploads/20251207_231820_69de15e6.png" alt="SeqLen Analysis" width="700">
+  <br><em>Hình 23. Impact của Sequence Length.</em>
+</div>
 
--   **Univariate Seq480 (Đỏ - Best):** Nhờ nhìn được lịch sử dài (480 ngày ~ 2 năm), model nắm bắt được **xu hướng dài hạn** (long-term trend) của FPT. Đường dự báo đầm, chắc chắn và bám sát xu hướng tăng trưởng.
--   **Univariate Seq60 (Cam - Overfit):** Chỉ nhìn 60 ngày (~3 tháng), model bị "cuốn" theo các biến động ngắn hạn (noise). Kết quả là Private Score cực tệ (~203) do overfitting vào dữ liệu train gần nhất.
+-   **Univariate Seq480 (Đỏ - Best):** Nhờ nhìn được lịch sử dài (480 ngày ~2 năm), model nắm bắt được **xu hướng dài hạn** (long-term trend) của FPT. Đường dự báo đầm, chắc chắn và bám sát xu hướng tăng trưởng.
+-   **Univariate Seq60 (Cam - Overfit):** Chỉ nhìn 60 ngày (khoảng 3 tháng), model bị "cuốn" theo các biến động ngắn hạn (noise). Kết quả là Private Score cực tệ (~203 MSE) do overfitting vào dữ liệu train gần nhất.
 
 > **Kết luận:** Với bài toán dự báo dài hạn (100 ngày), việc sử dụng **input sequence đủ dài** (Look-back window lớn) quan trọng hơn nhiều so với việc dùng model phức tạp.
 
 ### 2. Cuộc chiến HMM: Có HMM vs Không HMM
 
-<p align="center">
-  <img src="images/analysis_hmm.png" alt="HMM Analysis" width="700">
-  <br><em>Hình 23. Impact của HMM trên Multivariate Models.</em>
-</p>
+<div align="center">
+  <img src="https://aioconquer.aivietnam.edu.vn/static/uploads/20251207_231848_25356850.png" alt="HMM Analysis" width="700">
+  <br><em>Hình 24. Impact của HMM trên Multivariate Models.</em>
+</div>
 
 -   **Multivariate HMM (Xanh - Stable):** Khi dùng nhiều biến (đa biến), dữ liệu trở nên rất nhiễu. HMM giúp **phân cụm nhiễu** bằng cách chia thị trường thành các regimes (Stable vs Volatile). Nhờ đó forecast (đường xanh) ổn định hơn, Private Score 47.60.
 -   **Multivariate NoHMM (Xám - Volatile):** Nếu không có HMM, model đa biến bị nhiễu loạn bởi các tín hiệu conflicting từ nhiều features. Kết quả dự báo (đường xám) đi lệch hẳn, Private Score tệ (~249).
@@ -714,22 +682,18 @@ Nhóm sử dụng kết quả từ hệ thống Kaggle để có đánh giá kh�
 2.  **Univariate vs Multivariate:** Mô hình đơn biến (chỉ dùng `close`) hoạt động ổn định hơn. Việc thêm nhiều biến (multivariate) trong bài toán này gây ra nhiễu nhiều hơn là thêm thông tin hữu ích.
 3.  **Vai trò của HMM:** Đối với mô hình Multivariate, việc áp dụng HMM giúp giảm sai số (MSE giảm từ \~249 xuống \~56). Điều này chứng minh việc phân chia dữ liệu theo trạng thái giúp mô hình tránh bị xung đột khi học các quy luật khác nhau.
 
-
-
 ## 6. Case Study: Cổ phiếu VIC
 
 Nhóm cũng thử nghiệm pipeline trên cổ phiếu VIC (Vingroup) để kiểm tra độ bền vững.
 
-<p align="center">
-  <img src="images/vic_60days_top2.png" alt="VIC 60 Days Forecast" width="800">
-  <br><em>Hình 24. Dự báo VIC 60 ngày: Top 2 Models vs Actual.</em>
-</p>
+<div align="center">
+  <img src="https://aioconquer.aivietnam.edu.vn/static/uploads/20251207_232048_8c08206a.png" alt="VIC 60 Days Forecast" width="800">
+  <br><em>Hình 25. Dự báo VIC: Kết quả khá tệ (MSE ~400)</em>
+</div>
 
 **Vấn đề:** Dữ liệu huấn luyện của VIC chủ yếu nằm trong xu hướng giảm (downtrend). Tuy nhiên, tập test lại rơi vào giai đoạn phục hồi mạnh (uptrend).
 
 **Bài học:** Các mô hình dựa trên dữ liệu lịch sử (Technical Analysis) như LTSF-Linear hay HMM rất khó dự đoán được các điểm đảo chiều xu hướng (Trend Reversal) gây ra bởi các yếu tố cơ bản hoặc tin tức vĩ mô, nếu các mẫu hình này chưa từng xuất hiện trong quá khứ.
-
-
 
 ## 7. Kết luận
 
@@ -742,3 +706,7 @@ Dự án đã chứng minh tính hiệu quả của các mô hình tuyến tính
   * **Chỉ số Train MSE** thấp không đảm bảo kết quả dự báo tốt; cần cẩn trọng với overfitting.
 
 Trong tương lai, giải pháp có thể được cải thiện bằng cách tích hợp thêm các dữ liệu vĩ mô (Macroeconomics) hoặc tin tức (Sentiment Analysis) để xử lý tốt hơn các điểm đảo chiều xu hướng.
+
+### Tags
+Time Series Forecasting, Linear Models, HMM, Regime Switching, Stock Prediction, FPT, Market Regime
+
