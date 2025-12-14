@@ -32,10 +32,10 @@ Nhóm kết hợp 3 kỹ thuật chính:
 
 | Method | Config | Private Score |
 |--------|--------|---------------|
-| **Univariate DLinear** | NoHMM + Seq480 | **28.98** |
-| **Univariate Linear** | NoHMM + Seq480 | 39.81 |
-| **Multivariate DLinear** | HMM + Seq60 | 47.60 |
-| **Multivariate Linear** | HMM + Seq60 | 66.89 |
+| **Multivariate Linear** | HMM3W30 + Seq60 (Train 100%) | **20.71** |
+| **Multivariate DLinear** | HMM3W30 + Seq60 (Train 100%) | 24.26 |
+| **Univariate DLinear** | NoHMM + Seq480 (Train/Val Split) | 28.98 |
+| **Univariate Linear** | NoHMM + Seq480 (Train/Val Split) | 39.81 |
 
 # II. Các thách thức
 
@@ -625,11 +625,13 @@ Nhóm sử dụng kết quả từ hệ thống Kaggle để có đánh giá kh�
 
 ## Bảng kết quả (Kaggle Leaderboard)
 
- **LƯU Ý:**
-- Trong quá trình thi, nhóm từng đạt được mức **Private Score 14.35** (top 9). Tuy nhiên, sau khi kiểm tra kỹ lưỡng, nhóm phát hiện đó là kết quả của việc **Data Leakage** (do sơ suất trong khâu xử lý data pipeline). 
-- Sau khi fix lỗi và retrain lại pipeline chuẩn, số điểm ổn định (stable score) mà nhóm đạt được là **28.98**. Đây mới là kết quả thực sự phản ánh hiệu năng của giải pháp. Nhóm quyết định trung thực với kết quả này thay vì "ăn may".
+> **LƯU Ý:**
+> - Trong quá trình thi, nhóm từng đạt được mức **Private Score 14.35** (top 9). Tuy nhiên, sau khi kiểm tra kỹ lưỡng, nhóm phát hiện đó là kết quả của việc **Data Leakage** (do sơ suất trong khâu xử lý data pipeline). 
+> - Sau khi fix lỗi và retrain lại pipeline chuẩn, nhóm quyết định trung thực với kết quả thực sự thay vì "ăn may".
 
-### Top 4 Models tốt nhất
+### Phương pháp 1: Train/Val Split (95/5)
+
+Phương pháp đầu tiên sử dụng cách chia dữ liệu truyền thống với **95% Train** và **5% Validation** để thực hiện early stopping.
 
 | # | Model | Config | Private Score |
 |---|---|---|---|
@@ -637,6 +639,44 @@ Nhóm sử dụng kết quả từ hệ thống Kaggle để có đánh giá kh�
 | 2 | **Univariate Linear** | Seq480 (NoHMM) | 39.8063 |
 | 3 | **Multivariate DLinear** | Seq60 (HMM) | 47.6060 |
 | 4 | **Multivariate Linear** | Seq60 (HMM) | 66.8885 |
+
+**Nhận xét:** Với phương pháp này, **Univariate (đơn biến)** cho kết quả tốt hơn hẳn Multivariate.
+
+---
+
+### Phương pháp 2: Train 100% (Không có Validation Set)
+
+Sau khi thử nghiệm, nhóm phát hiện rằng việc sử dụng **100% dữ liệu để training** (không giữ lại validation set) cho kết quả tốt hơn đáng kể, đặc biệt với mô hình Multivariate.
+
+| # | Model | Config | Private Score |
+|---|---|---|---|
+| 1 | **Multivariate Linear** | Seq60 (HMM) | **20.7066** |
+| 2 | **Multivariate DLinear** | Seq60 (HMM) | 24.2617 |
+| 3 | **Univariate DLinear** | Seq480 (NoHMM) | 97.9124 |
+| 4 | **Univariate Linear** | Seq480 (NoHMM) | 127.5835 |
+
+**Nhận xét:** Kết quả đảo ngược hoàn toàn! **Multivariate (đa biến)** giờ cho kết quả tốt hơn hẳn Univariate.
+
+---
+
+### So sánh 2 phương pháp
+
+| Tiêu chí | Train/Val Split (95/5) | Train 100% |
+|----------|------------------------|------------|
+| **Best Score** | 28.98 | **20.71** |
+| **Best Model** | Univariate DLinear | **Multivariate Linear** |
+| **Early Stopping** | Có (dựa trên val loss) | Không (train đến epochs max) |
+| **Overfitting Risk** | Thấp (có validation) | Cao hơn (nhưng được bù bởi data nhiều hơn) |
+
+**Insight quan trọng:**
+
+1. **Dữ liệu là vàng:** Với dataset nhỏ (~1149 ngày), việc sử dụng thêm 5% data (~ 57 ngày) cho training tạo ra sự khác biệt lớn về kết quả.
+
+2. **Multivariate cần nhiều data hơn:** Mô hình đa biến có nhiều parameters hơn, cần nhiều dữ liệu để học. Khi được train trên 100% data, nó vượt trội so với đơn biến.
+
+3. **HMM vẫn quan trọng:** Cả 2 phương pháp đều cho thấy HMM giúp cải thiện performance của Multivariate models.3
+
+4. **Đơn biến đạt điểm tốt nhờ early stopping.**
 
 ### So sánh trực quan
 
@@ -678,9 +718,19 @@ Nhóm sử dụng kết quả từ hệ thống Kaggle để có đánh giá kh�
 
 ### Phân tích Insight
 
-1.  **Input Sequence Length (Seq Len):** Độ dài đầu vào lớn (480 ngày $\approx$ 2 năm) cho kết quả tốt hơn hẳn so với ngắn hạn (60 ngày). Lý do là mô hình học được xu hướng dài hạn và ít bị nhiễu bởi các biến động ngắn hạn.
-2.  **Univariate vs Multivariate:** Mô hình đơn biến (chỉ dùng `close`) hoạt động ổn định hơn. Việc thêm nhiều biến (multivariate) trong bài toán này gây ra nhiễu nhiều hơn là thêm thông tin hữu ích.
-3.  **Vai trò của HMM:** Đối với mô hình Multivariate, việc áp dụng HMM giúp giảm sai số (MSE giảm từ \~249 xuống \~56). Điều này chứng minh việc phân chia dữ liệu theo trạng thái giúp mô hình tránh bị xung đột khi học các quy luật khác nhau.
+1. **Dữ liệu là vàng:** Với dataset nhỏ (~1149 ngày), việc sử dụng thêm 5% data (~57 ngày) cho training đã tạo ra sự khác biệt lớn về kết quả (cải thiện ~28% MSE).
+
+2. **Multivariate cần nhiều data hơn:** Mô hình đa biến có nhiều parameters hơn, cần nhiều dữ liệu để học. Khi data hạn chế (Train/Val Split), Univariate chiến thắng. Khi được train trên 100% data, Multivariate vượt trội.
+
+3. **HMM là cần thiết với Multivariate:** Cả 2 phương pháp đều cho thấy HMM giúp cải thiện đáng kể performance của Multivariate models (MSE giảm từ ~249 xuống ~47-56 với Train/Val Split, và xuống ~20-24 với Train 100%).
+
+4. **Sequence Length phụ thuộc vào loại model:**
+   - **Univariate:** Cần Seq dài (480 ngày ~ 2 năm) để nắm bắt xu hướng dài hạn
+   - **Multivariate + HMM:** Seq ngắn (60 ngày) hoạt động tốt hơn, vì HMM đã giúp phân cụm dữ liệu theo regime
+
+5. **Train 100% không lo rủi ro overfitting:**  Nhờ HMM chia data thành 3 regimes riêng biệt, mỗi model con chỉ train trên một phần data. Điều này hoạt động như một dạng regularization ngầm, giúp tránh overfitting dù sử dụng toàn bộ dữ liệu.
+
+
 
 # VI. Kết luận
 
@@ -688,8 +738,12 @@ Dự án đã chứng minh tính hiệu quả của các mô hình tuyến tính
 
 **Các điểm chính:**
 
-  * **Univariate DLinear** với cửa sổ lịch sử dài (480 ngày) là cấu hình hiệu quả nhất.
-  * **HMM Regime-Switching** là kỹ thuật hữu ích để cải thiện hiệu suất cho các mô hình đa biến.
-  * **Chỉ số Train MSE** thấp không đảm bảo kết quả dự báo tốt; cần cẩn trọng với overfitting.
+* **Multivariate + HMM là combo tốt nhất** khi có đủ dữ liệu để train. Kết quả best score đến từ **Multivariate Linear + HMM3W30 + Seq60**.
+
+* **Univariate DLinear** với Seq480 là lựa chọn an toàn khi dữ liệu hạn chế hoặc cần chia train/val.
+
+* **HMM Regime-Switching** là kỹ thuật bắt buộc để cải thiện hiệu suất cho các mô hình đa biến.
+
+* **Chỉ số Train MSE** thấp không đảm bảo kết quả dự báo tốt; cần cẩn trọng với overfitting.
 
 Trong tương lai, giải pháp có thể được cải thiện bằng cách tích hợp thêm các dữ liệu vĩ mô (Macroeconomics), tin tức (Sentiment Analysis) để xử lý tốt hơn các điểm đảo chiều xu hướng hoặc tăng cường khả năng nhận diện Market Regime bằng cách cải thiện thêm các feature cho HMM thay vì chỉ 3 feature cơ bản.
