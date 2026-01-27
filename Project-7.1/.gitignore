@@ -1,0 +1,49 @@
+# Data folders
+data/
+action-video-extracted/
+archive-extracted/
+
+# Zip files
+*.zip
+
+# Model checkpoints
+*.pt
+*.pth
+*.bin
+videomae_*/
+lightweight_vit_*.pt
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+
+# Environment
+.env
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Kaggle outputs
+submission*.csv
+test_labels.csv
+test_labels.json
+
+# Logs
+*.log
+wandb/
