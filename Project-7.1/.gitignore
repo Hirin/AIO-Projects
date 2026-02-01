@@ -47,3 +47,5 @@ test_labels.json
 # Logs
 *.log
 wandb/
+
+.agent/
