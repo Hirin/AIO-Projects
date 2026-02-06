@@ -120,6 +120,10 @@ def create_notebook():
         "source": [
             "# Imports\n",
             "import os\n",
+            "os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'\n",
+            "os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'\n",
+            "os.environ['GRPC_VERBOSITY'] = 'ERROR'\n",
+            "os.environ['GLOG_minloglevel'] = '3'\n",
             "import gc\n",
             "import random\n",
             "import shutil\n",
