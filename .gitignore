@@ -1,1 +1,8 @@
 Project-6.1/GLinear
+
+# Generated Python files and local environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
